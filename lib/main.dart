@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
-import 'screens/upload_screen.dart'; // Importe ton écran d'upload
+import 'screens/upload_screen.dart';
 import 'screens/document_list_screen.dart';
+import 'services/encryption_service.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize encryption service (generates RSA keys if not present)
+  final encryptionService = EncryptionService();
+  await encryptionService.initialize();
+  
   runApp(const MyApp());
 }
 

@@ -43,11 +43,17 @@ dependencies:
 
   flutter_secure_storage: ^10.0.0-beta.4
 
+  image_picker: ^1.1.2
+
   sqflite: ^2.3.3
+  
+  path: ^1.9.0  # For path operations
 
   provider: ^6.1.2  # Pour la gestion d'état
 
   flutter_pdfview: ^1.3.2
+
+  pointycastle: ^3.9.1  # For RSA encryption
 
 dev_dependencies:
   flutter_test:

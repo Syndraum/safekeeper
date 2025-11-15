@@ -34,10 +34,14 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   Future<void> _deleteDocument(int id) async {
     await _documentService.deleteDocument(id);
-    _loadDocuments();  // Reload the list after deletion
+    _loadDocuments(); // Reload the list after deletion
   }
 
-  Future<void> _openDocument(int documentId, String encryptedPath, String name) async {
+  Future<void> _openDocument(
+    int documentId,
+    String encryptedPath,
+    String name,
+  ) async {
     try {
       // Get document metadata from database
       final doc = await _documentService.getDocument(documentId);
@@ -75,14 +79,29 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       File tempFile = File(tempPath);
       await tempFile.writeAsBytes(decryptedBytes);
 
-      // Navigate to a viewer screen (example for PDF)
+      // Navigate to a viewer screen
       if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PDFView(filePath: tempPath),
-          ),
-        );
+        // Check file extension to determine viewer type
+        String extension = name.toLowerCase().split('.').last;
+
+        if (extension == 'pdf') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  PDFViewerScreen(filePath: tempPath, fileName: name),
+            ),
+          );
+        } else {
+          // For non-PDF files, show a generic viewer or download option
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  GenericFileViewerScreen(filePath: tempPath, fileName: name),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -112,7 +131,8 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                     icon: Icon(Icons.delete),
                     onPressed: () => _showDeleteDialog(doc['id']),
                   ),
-                  onTap: () => _openDocument(doc['id'], doc['path'], doc['name']),
+                  onTap: () =>
+                      _openDocument(doc['id'], doc['path'], doc['name']),
                 );
               },
             ),
@@ -123,21 +143,182 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete document?'),
+        title: const Text('Delete document?'),
+        content: const Text('This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
               _deleteDocument(id);
               Navigator.pop(context);
             },
-            child: Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+}
+
+/// PDF Viewer Screen with proper Scaffold wrapper
+class PDFViewerScreen extends StatelessWidget {
+  final String filePath;
+  final String fileName;
+
+  const PDFViewerScreen({
+    super.key,
+    required this.filePath,
+    required this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(fileName),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Document Info'),
+                  content: Text('File: $fileName\nType: PDF'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: PDFView(
+        filePath: filePath,
+        enableSwipe: true,
+        swipeHorizontal: false,
+        autoSpacing: true,
+        pageFling: true,
+        pageSnap: true,
+        onError: (error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error loading PDF: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+        onPageError: (page, error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error on page $page: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Generic File Viewer for non-PDF files
+class GenericFileViewerScreen extends StatelessWidget {
+  final String filePath;
+  final String fileName;
+
+  const GenericFileViewerScreen({
+    super.key,
+    required this.filePath,
+    required this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String extension = fileName.toLowerCase().split('.').last;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(fileName)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _getFileIcon(extension),
+                size: 100,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                fileName,
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'File Type: ${extension.toUpperCase()}',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'This file type cannot be previewed in the app.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Show file location
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('File Location'),
+                      content: SelectableText(filePath),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Show File Location'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _getFileIcon(String extension) {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return Icons.image;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'txt':
+        return Icons.text_snippet;
+      case 'zip':
+      case 'rar':
+        return Icons.folder_zip;
+      default:
+        return Icons.insert_drive_file;
+    }
   }
 }

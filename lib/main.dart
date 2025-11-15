@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'App de Gestion de Documents',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 36, 77, 124)),
       ),
       // Définit les routes pour naviguer entre écrans
       routes: {

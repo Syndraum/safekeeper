@@ -34,7 +34,7 @@ class _UploadScreenState extends State<UploadScreen> {
       File encryptedFile = File(encryptedPath);
       await encryptedFile.writeAsBytes(encryptionResult.encryptedData);
 
-      // Convert encrypted key and IV to base64 for storage
+      // Convert encrypted key, IV, and HMAC to base64 for storage
       final base64Map = encryptionResult.toBase64Map();
 
       // Save document metadata to database
@@ -43,12 +43,15 @@ class _UploadScreenState extends State<UploadScreen> {
         encryptedPath,
         base64Map['encryptedKey']!,
         base64Map['iv']!,
+        hmac: base64Map['hmac'],
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Document uploaded and secured with hybrid encryption!'),
+            content: Text(
+              'Document uploaded and secured with hybrid encryption!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -74,9 +77,9 @@ class _UploadScreenState extends State<UploadScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('File selection error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('File selection error: $e')));
       }
     }
   }
@@ -87,7 +90,7 @@ class _UploadScreenState extends State<UploadScreen> {
         source: ImageSource.camera,
         imageQuality: 85,
       );
-      
+
       if (photo != null) {
         File file = File(photo.path);
         String fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}';
@@ -95,9 +98,9 @@ class _UploadScreenState extends State<UploadScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Camera error: $e')));
       }
     }
   }
@@ -120,7 +123,10 @@ class _UploadScreenState extends State<UploadScreen> {
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 15,
+                  ),
                   minimumSize: const Size(double.infinity, 60),
                 ),
               ),
@@ -133,7 +139,10 @@ class _UploadScreenState extends State<UploadScreen> {
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 15,
+                  ),
                   minimumSize: const Size(double.infinity, 60),
                 ),
               ),

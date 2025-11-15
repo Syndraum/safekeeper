@@ -54,13 +54,15 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         return;
       }
 
-      // Get encrypted key and IV from database
+      // Get encrypted key, IV, and HMAC from database
       String encryptedKeyBase64 = doc['encrypted_key'];
       String ivBase64 = doc['iv'];
+      String? hmacBase64 = doc['hmac'];
 
       // Convert from base64
       Uint8List encryptedKey = base64.decode(encryptedKeyBase64);
       Uint8List iv = base64.decode(ivBase64);
+      Uint8List? hmac = hmacBase64 != null ? base64.decode(hmacBase64) : null;
 
       // Read encrypted file
       File encryptedFile = File(encryptedPath);
@@ -71,6 +73,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         encryptedData,
         encryptedKey,
         iv,
+        hmac,
       );
 
       // Save the decrypted file temporarily for viewing

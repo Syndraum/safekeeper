@@ -19,7 +19,7 @@ class DocumentService {
     String path = join(await getDatabasesPath(), 'documents.db');
     return await openDatabase(
       path,
-      version: 2, // Incremented version for schema update
+      version: 3, // Incremented version for HMAC support
       onCreate: (db, version) {
         return db.execute(
           'CREATE TABLE documents('
@@ -28,6 +28,7 @@ class DocumentService {
           'path TEXT, '
           'encrypted_key TEXT, '
           'iv TEXT, '
+          'hmac TEXT, '
           'upload_date TEXT'
           ')',
         );
@@ -41,6 +42,10 @@ class DocumentService {
           await db.execute('ALTER TABLE documents ADD COLUMN iv TEXT');
           await db.execute('ALTER TABLE documents ADD COLUMN upload_date TEXT');
         }
+        if (oldVersion < 3) {
+          // Migration from version 2 to 3 - Add HMAC column
+          await db.execute('ALTER TABLE documents ADD COLUMN hmac TEXT');
+        }
       },
     );
   }
@@ -49,14 +54,16 @@ class DocumentService {
     String name,
     String path,
     String encryptedKey,
-    String iv,
-  ) async {
+    String iv, {
+    String? hmac,
+  }) async {
     final db = await database;
     await db.insert('documents', {
       'name': name,
       'path': path,
       'encrypted_key': encryptedKey,
       'iv': iv,
+      if (hmac != null) 'hmac': hmac,
       'upload_date': DateTime.now().toIso8601String(),
     });
   }

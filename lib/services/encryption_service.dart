@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:crypto/crypto.dart';
 
 class EncryptionService {
   static final EncryptionService _instance = EncryptionService._internal();
@@ -20,6 +21,14 @@ class EncryptionService {
   /// Initialize the encryption service - generates RSA keys if not present
   Future<void> initialize() async {
     await _loadOrGenerateRSAKeys();
+  }
+
+  bool _isEqual(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Load existing RSA keys or generate new ones
@@ -133,10 +142,17 @@ class EncryptionService {
     // Encrypt the AES key with RSA
     final encryptedAesKey = _rsaEncrypt(aesKey.bytes, _publicKey!);
 
+    // Calculer le HMAC des données chiffrées
+    final hmac = Hmac(sha256, aesKey.bytes);
+    final hmacBytes = Uint8List.fromList(
+      hmac.convert(encryptedFile.bytes).bytes,
+    );
+
     return HybridEncryptionResult(
       encryptedData: encryptedFile.bytes,
       encryptedKey: encryptedAesKey,
       iv: iv.bytes,
+      hmac: hmacBytes,
     );
   }
 
@@ -145,6 +161,7 @@ class EncryptionService {
     Uint8List encryptedData,
     Uint8List encryptedKey,
     Uint8List iv,
+    Uint8List? hmac,
   ) async {
     if (_privateKey == null) {
       throw Exception('RSA keys not initialized. Call initialize() first.');
@@ -154,6 +171,13 @@ class EncryptionService {
     final aesKeyBytes = _rsaDecrypt(encryptedKey, _privateKey!);
     final aesKey = encrypt.Key(Uint8List.fromList(aesKeyBytes));
     final ivObj = encrypt.IV(Uint8List.fromList(iv));
+    if (hmac != null) {
+      final hmacCheck = Hmac(sha256, aesKey.bytes);
+      final calculatedHmac = hmacCheck.convert(encryptedData).bytes;
+      if (!_isEqual(hmac, Uint8List.fromList(calculatedHmac))) {
+        throw Exception('HMAC verification failed - data may be corrupted');
+      }
+    }
 
     // Decrypt file with AES
     final encrypter = encrypt.Encrypter(encrypt.AES(aesKey));
@@ -212,11 +236,13 @@ class HybridEncryptionResult {
   final Uint8List encryptedData;
   final Uint8List encryptedKey;
   final Uint8List iv;
+  final Uint8List? hmac;
 
   HybridEncryptionResult({
     required this.encryptedData,
     required this.encryptedKey,
     required this.iv,
+    this.hmac,
   });
 
   /// Convert to base64 strings for storage
@@ -225,6 +251,7 @@ class HybridEncryptionResult {
       'encryptedData': base64.encode(encryptedData),
       'encryptedKey': base64.encode(encryptedKey),
       'iv': base64.encode(iv),
+      if (hmac != null) 'hmac': base64.encode(hmac!),
     };
   }
 
@@ -234,6 +261,7 @@ class HybridEncryptionResult {
       encryptedData: base64.decode(map['encryptedData']!),
       encryptedKey: base64.decode(map['encryptedKey']!),
       iv: base64.decode(map['iv']!),
+      hmac: map['hmac'] != null ? base64.decode(map['hmac']!) : null,
     );
   }
 }

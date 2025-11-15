@@ -1,10 +1,14 @@
+import 'dart:convert'; // For base64 encoding/decoding
+import 'dart:typed_data'; // For Uint8List
+
 class Document {
   final String id;
   final String name;
-  final String filePath;  // Path to the encrypted file
+  final String filePath;
   final DateTime uploadDate;
-  final String encryptedKey;  // RSA-encrypted AES key (base64)
-  final String iv;  // Initialization vector (base64)
+  final String encryptedKey;
+  final String iv;
+  final Uint8List? hmac; // Declare the hmac field as nullable Uint8List
 
   Document({
     required this.id,
@@ -13,6 +17,7 @@ class Document {
     required this.uploadDate,
     required this.encryptedKey,
     required this.iv,
+    this.hmac, // Optional field
   });
 
   // Serialize to JSON for persistence
@@ -23,6 +28,7 @@ class Document {
     'uploadDate': uploadDate.toIso8601String(),
     'encryptedKey': encryptedKey,
     'iv': iv,
+    if (hmac != null) 'hmac': base64.encode(hmac!),
   };
 
   // Deserialize from JSON
@@ -33,5 +39,6 @@ class Document {
     uploadDate: DateTime.parse(json['uploadDate']),
     encryptedKey: json['encryptedKey'],
     iv: json['iv'],
+    hmac: json['hmac'] != null ? base64.decode(json['hmac']) : null,
   );
 }

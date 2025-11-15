@@ -56,6 +56,8 @@ dependencies:
 
   pointycastle: ^3.9.1  # For RSA encryption
 
+  crypto: ^3.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -90,7 +90,7 @@ class _UploadScreenState extends State<UploadScreen> {
       
       if (photo != null) {
         File file = File(photo.path);
-        String fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}';
+        String fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
         await _encryptAndSaveFile(file, fileName);
       }
     } catch (e) {

@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'screens/upload_screen.dart';
 import 'screens/document_list_screen.dart';
 import 'services/encryption_service.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
-  databaseFactory = databaseFactoryFfi;
-
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   

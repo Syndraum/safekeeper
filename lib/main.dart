@@ -5,6 +5,7 @@ import 'screens/password_setup_screen.dart';
 import 'screens/unlock_screen.dart';
 import 'services/encryption_service.dart';
 import 'services/auth_service.dart';
+import 'widgets/emergency_recording_wrapper.dart';
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
@@ -37,6 +38,12 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      // Wrap the entire app with emergency recording functionality
+      builder: (context, child) {
+        return EmergencyRecordingWrapper(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       // Définit les routes pour naviguer entre écrans
       routes: {
         '/': (context) =>

@@ -60,6 +60,10 @@ dependencies:
 
   mime: ^1.0.5  # For MIME type detection
 
+  record: ^6.0.0  # For audio recording
+
+  permission_handler: ^11.3.1  # For microphone permissions
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

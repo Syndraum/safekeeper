@@ -21,7 +21,7 @@ class DocumentService {
     String path = join(await getDatabasesPath(), 'documents.db');
     return await openDatabase(
       path,
-      version: 4, // Incremented version for MIME type and file type support
+      version: 5, // Incremented version for cloud backup support
       onCreate: (db, version) {
         return db.execute(
           'CREATE TABLE documents('
@@ -33,7 +33,12 @@ class DocumentService {
           'hmac TEXT, '
           'upload_date TEXT, '
           'mime_type TEXT, '
-          'file_type TEXT'
+          'file_type TEXT, '
+          'google_drive_backup_status TEXT, '
+          'google_drive_file_id TEXT, '
+          'dropbox_backup_status TEXT, '
+          'dropbox_file_path TEXT, '
+          'last_backup_date TEXT'
           ')',
         );
       },
@@ -54,6 +59,14 @@ class DocumentService {
           // Migration from version 3 to 4 - Add MIME type and file type columns
           await db.execute('ALTER TABLE documents ADD COLUMN mime_type TEXT');
           await db.execute('ALTER TABLE documents ADD COLUMN file_type TEXT');
+        }
+        if (oldVersion < 5) {
+          // Migration from version 4 to 5 - Add cloud backup columns
+          await db.execute('ALTER TABLE documents ADD COLUMN google_drive_backup_status TEXT');
+          await db.execute('ALTER TABLE documents ADD COLUMN google_drive_file_id TEXT');
+          await db.execute('ALTER TABLE documents ADD COLUMN dropbox_backup_status TEXT');
+          await db.execute('ALTER TABLE documents ADD COLUMN dropbox_file_path TEXT');
+          await db.execute('ALTER TABLE documents ADD COLUMN last_backup_date TEXT');
         }
       },
     );

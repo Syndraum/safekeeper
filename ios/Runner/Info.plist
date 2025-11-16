@@ -51,5 +51,16 @@
 	<string>Cette application a besoin d'accéder à la galerie photo pour sauvegarder les photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Cette application a besoin d'accéder au microphone pour enregistrer des messages audio d'urgence.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>safekeeper</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

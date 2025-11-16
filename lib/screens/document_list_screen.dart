@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import '../services/document_service.dart';
 import '../services/encryption_service.dart';
 import '../services/file_type_detector.dart';
+import '../services/cloud_backup_service.dart';
+import '../models/backup_status.dart';
 import '../widgets/audio_player_widget.dart';
 
 class DocumentListScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class DocumentListScreen extends StatefulWidget {
 class _DocumentListScreenState extends State<DocumentListScreen> {
   final DocumentService _documentService = DocumentService();
   final _encryptionService = EncryptionService();
+  final _backupService = CloudBackupService();
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _documents = [];
   List<Map<String, dynamic>> _filteredDocuments = [];
@@ -255,11 +258,87 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     }
   }
 
+  Future<void> _syncAllDocuments() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      await _backupService.syncAllDocuments();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All documents synced successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sync failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildBackupStatusIcon(int documentId) {
+    final status = _backupService.getBackupStatus(documentId);
+    
+    if (status == null || !status.isBackedUp) {
+      return const SizedBox.shrink();
+    }
+
+    if (status.isUploading) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 8.0),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (status.hasFailed) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 8.0),
+        child: Icon(Icons.cloud_off, size: 16, color: Colors.orange),
+      );
+    }
+
+    return const Padding(
+      padding: EdgeInsets.only(left: 8.0),
+      child: Icon(Icons.cloud_done, size: 16, color: Colors.green),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Document List'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            onPressed: _syncAllDocuments,
+            tooltip: 'Sync all documents',
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+            tooltip: 'Settings',
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60.0),
           child: Padding(
@@ -319,7 +398,12 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                         size: 32,
                         color: Theme.of(context).primaryColor,
                       ),
-                      title: Text(doc['name']),
+                      title: Row(
+                        children: [
+                          Expanded(child: Text(doc['name'])),
+                          _buildBackupStatusIcon(doc['id']),
+                        ],
+                      ),
                       subtitle: uploadDate != null
                           ? Text(
                               _formatDate(uploadDate),

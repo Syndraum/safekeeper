@@ -46,6 +46,7 @@ dependencies:
   image_picker: ^1.1.2
 
   sqflite: ^2.3.3
+  # sqflite_common_ffi: ^2.3.3
   
   path: ^1.9.0  # For path operations
 
@@ -58,6 +59,12 @@ dependencies:
   crypto: ^3.0.3
 
   mime: ^1.0.5  # For MIME type detection
+
+  record: ^6.0.0  # For audio recording
+
+  permission_handler: ^11.3.1  # For microphone permissions
+
+  audioplayers: ^6.1.0  # For audio playback
 
 dev_dependencies:
   flutter_test:

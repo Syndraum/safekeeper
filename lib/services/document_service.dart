@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'dart:io';
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 
@@ -10,6 +11,7 @@ class DocumentService {
     _database = await _initDB();
     return _database!;
   }
+
   // static void init() {
   //   databaseFactory = databaseFactoryFfi;
   // }
@@ -106,6 +108,30 @@ class DocumentService {
 
   Future<void> deleteDocument(int id) async {
     final db = await database;
+
+    // Get the document to retrieve the file path
+    final doc = await getDocument(id);
+
+    if (doc != null) {
+      // Delete the physical encrypted file
+      final filePath = doc['path'] as String?;
+      if (filePath != null && filePath.isNotEmpty) {
+        try {
+          final file = File(filePath);
+          if (await file.exists()) {
+            await file.delete();
+            print('Deleted encrypted file: $filePath');
+          } else {
+            print('File not found (already deleted?): $filePath');
+          }
+        } catch (e) {
+          print('Error deleting file $filePath: $e');
+          // Continue with database deletion even if file deletion fails
+        }
+      }
+    }
+
+    // Delete the database entry
     await db.delete('documents', where: 'id = ?', whereArgs: [id]);
   }
 

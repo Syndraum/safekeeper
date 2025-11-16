@@ -16,12 +16,39 @@ class DocumentService {
   //   databaseFactory = databaseFactoryFfi;
   // }
 
+  /// Helper function to check if a column exists in a table
+  Future<bool> _columnExists(Database db, String tableName, String columnName) async {
+    try {
+      final result = await db.rawQuery('PRAGMA table_info($tableName)');
+      return result.any((column) => column['name'] == columnName);
+    } catch (e) {
+      print('Error checking column existence: $e');
+      return false;
+    }
+  }
+
+  /// Helper function to safely add a column if it doesn't exist
+  Future<void> _addColumnIfNotExists(
+    Database db,
+    String tableName,
+    String columnName,
+    String columnType,
+  ) async {
+    final exists = await _columnExists(db, tableName, columnName);
+    if (!exists) {
+      await db.execute('ALTER TABLE $tableName ADD COLUMN $columnName $columnType');
+      print('Added column $columnName to $tableName');
+    } else {
+      print('Column $columnName already exists in $tableName, skipping');
+    }
+  }
+
   Future<Database> _initDB() async {
     // databaseFactory = databaseFactoryFfi;
     String path = join(await getDatabasesPath(), 'documents.db');
     return await openDatabase(
       path,
-      version: 4, // Incremented version for MIME type and file type support
+      version: 5, // Incremented version for cloud backup support
       onCreate: (db, version) {
         return db.execute(
           'CREATE TABLE documents('
@@ -33,27 +60,38 @@ class DocumentService {
           'hmac TEXT, '
           'upload_date TEXT, '
           'mime_type TEXT, '
-          'file_type TEXT'
+          'file_type TEXT, '
+          'google_drive_backup_status TEXT, '
+          'google_drive_file_id TEXT, '
+          'dropbox_backup_status TEXT, '
+          'dropbox_file_path TEXT, '
+          'last_backup_date TEXT'
           ')',
         );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           // Migration from version 1 to 2
-          await db.execute(
-            'ALTER TABLE documents ADD COLUMN encrypted_key TEXT',
-          );
-          await db.execute('ALTER TABLE documents ADD COLUMN iv TEXT');
-          await db.execute('ALTER TABLE documents ADD COLUMN upload_date TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'encrypted_key', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'iv', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'upload_date', 'TEXT');
         }
         if (oldVersion < 3) {
           // Migration from version 2 to 3 - Add HMAC column
-          await db.execute('ALTER TABLE documents ADD COLUMN hmac TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'hmac', 'TEXT');
         }
         if (oldVersion < 4) {
           // Migration from version 3 to 4 - Add MIME type and file type columns
-          await db.execute('ALTER TABLE documents ADD COLUMN mime_type TEXT');
-          await db.execute('ALTER TABLE documents ADD COLUMN file_type TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'mime_type', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'file_type', 'TEXT');
+        }
+        if (oldVersion < 5) {
+          // Migration from version 4 to 5 - Add cloud backup columns
+          await _addColumnIfNotExists(db, 'documents', 'google_drive_backup_status', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'google_drive_file_id', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'dropbox_backup_status', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'dropbox_file_path', 'TEXT');
+          await _addColumnIfNotExists(db, 'documents', 'last_backup_date', 'TEXT');
         }
       },
     );

@@ -121,6 +121,16 @@ class RecordingService {
     return '${appDir.path}/$filename';
   }
 
+  /// Clean up camera resources
+  Future<void> _cleanupCamera() async {
+    try {
+      await _cameraController?.dispose();
+      _cameraController = null;
+    } catch (e) {
+      print('Error disposing camera: $e');
+    }
+  }
+
   /// Start recording
   Future<bool> startRecording() async {
     if (_isRecording) {
@@ -168,8 +178,19 @@ class RecordingService {
       return true;
     } catch (e) {
       print('Error starting video recording: $e');
+      
+      // Clean up camera resources on failure
+      await _cleanupCamera();
+      
+      // Reset state
       _isRecording = false;
+      _recordingStartTime = null;
+      _currentRecordingPath = null;
       _recordingStateController.add(false);
+      _durationTimer?.cancel();
+      _durationTimer = null;
+      _durationController.add(Duration.zero);
+      
       return false;
     }
   }
@@ -241,10 +262,19 @@ class RecordingService {
       }
     } catch (e) {
       print('Error stopping video recording: $e');
+      
+      // Clean up camera resources on failure
+      await _cleanupCamera();
+      
+      // Reset state
       _isRecording = false;
+      _recordingStartTime = null;
+      _currentRecordingPath = null;
       _recordingStateController.add(false);
       _durationTimer?.cancel();
+      _durationTimer = null;
       _durationController.add(Duration.zero);
+      
       return null;
     }
   }
@@ -274,6 +304,10 @@ class RecordingService {
     } catch (e) {
       print('Error canceling recording: $e');
     } finally {
+      // Clean up camera resources
+      await _cleanupCamera();
+      
+      // Reset state
       _isRecording = false;
       _recordingStartTime = null;
       _currentRecordingPath = null;

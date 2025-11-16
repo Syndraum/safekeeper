@@ -36,6 +36,9 @@ class RecordingService {
     return DateTime.now().difference(_recordingStartTime!);
   }
 
+  /// Get camera controller for preview
+  CameraController? get cameraController => _cameraController;
+
   /// Check and request camera and microphone permissions
   Future<bool> _requestPermissions() async {
     // Check current permission status
@@ -111,6 +114,13 @@ class RecordingService {
     return 'emergency_video_$timestamp.mp4';
   }
 
+  /// Generate full file path in app documents directory
+  Future<String> _generateFilePath() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final filename = _generateFilename();
+    return '${appDir.path}/$filename';
+  }
+
   /// Start recording
   Future<bool> startRecording() async {
     if (_isRecording) {
@@ -136,12 +146,11 @@ class RecordingService {
         }
       }
 
-      // Get temporary directory for recording
-      final tempDir = await getTemporaryDirectory();
-      final filename = _generateFilename();
-      _currentRecordingPath = '${tempDir.path}/$filename';
+      // Generate file path in app documents directory (not temp)
+      // This avoids iOS issues with moving files from temp directory
+      _currentRecordingPath = await _generateFilePath();
 
-      // Start video recording
+      // Start video recording directly to final destination
       await _cameraController!.startVideoRecording();
 
       _isRecording = true;
@@ -187,29 +196,55 @@ class RecordingService {
 
       print('Video recording stopped: ${videoFile.path}');
 
-      // Move file to our designated path if different
+      // On iOS, the video file is already in the correct location
+      // On Android, we may need to move it
+      String finalPath = videoFile.path;
+
       if (_currentRecordingPath != null &&
           videoFile.path != _currentRecordingPath) {
-        final targetFile = File(_currentRecordingPath!);
-        await videoFile.saveTo(_currentRecordingPath!);
+        try {
+          // Try to move/copy the file to our designated path
+          final sourceFile = File(videoFile.path);
+          final targetFile = File(_currentRecordingPath!);
 
-        // Verify file exists at target location
-        if (await targetFile.exists()) {
-          final recordingPath = _currentRecordingPath;
-          _currentRecordingPath = null;
-          return recordingPath;
+          // Copy file content
+          await sourceFile.copy(_currentRecordingPath!);
+
+          // Verify target file exists
+          if (await targetFile.exists()) {
+            finalPath = _currentRecordingPath!;
+
+            // Try to delete source file (may fail on some platforms, that's ok)
+            try {
+              await sourceFile.delete();
+            } catch (e) {
+              print('Could not delete source file: $e');
+            }
+          }
+        } catch (e) {
+          print('Could not move file, using original path: $e');
+          // If move fails, use the original path
+          finalPath = videoFile.path;
         }
       }
 
-      // Return the video file path
-      final recordingPath = videoFile.path;
       _currentRecordingPath = null;
-      return recordingPath;
+
+      // Verify final file exists
+      final finalFile = File(finalPath);
+      if (await finalFile.exists()) {
+        print('Recording saved successfully: $finalPath');
+        return finalPath;
+      } else {
+        print('Recording file not found at: $finalPath');
+        return null;
+      }
     } catch (e) {
       print('Error stopping video recording: $e');
       _isRecording = false;
       _recordingStateController.add(false);
       _durationTimer?.cancel();
+      _durationController.add(Duration.zero);
       return null;
     }
   }

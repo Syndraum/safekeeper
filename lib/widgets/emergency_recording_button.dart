@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import '../services/recording_service.dart';
 
-/// Floating emergency recording button with recording state UI
+/// Floating emergency recording button with recording state UI and camera preview
 class EmergencyRecordingButton extends StatefulWidget {
   final VoidCallback onRecordingComplete;
   final Function(String) onError;
@@ -116,64 +117,108 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
 
   @override
   Widget build(BuildContext context) {
-    // Get screen dimensions for responsive positioning
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    return Stack(
+      children: [
+        // Camera preview overlay when recording
+        if (_isRecording && _recordingService.cameraController != null)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: _recordingService.cameraController!.value.isInitialized
+                  ? CameraPreview(_recordingService.cameraController!)
+                  : const Center(child: CircularProgressIndicator()),
+            ),
+          ),
 
-    // Position button very low - just 24px from bottom plus safe area
-    final bottomPosition = 24.0 + bottomPadding;
-
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: bottomPosition,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Recording duration display
-          if (_isRecording) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+        // Recording controls overlay
+        if (_isRecording)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
+                ),
+                child: Column(
+                  children: [
+                    // Recording indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _formatDuration(_duration),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _formatDuration(_duration),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      letterSpacing: 1.2,
+                    const SizedBox(height: 12),
+                    // Recording label
+                    const Text(
+                      'EMERGENCY RECORDING',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black,
+                            offset: Offset(0, 1),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
 
-          // Main recording button with integrated label
-          AnimatedBuilder(
+        // Bottom button (always visible)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 24 + MediaQuery.of(context).padding.bottom,
+          child: AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {
               // Responsive button size
@@ -206,17 +251,17 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
                     // Integrated label
                     const SizedBox(height: 6),
                     Text(
-                      _isRecording ? 'RECORDING' : 'EMERGENCY',
+                      _isRecording ? 'STOP' : 'EMERGENCY',
                       style: TextStyle(
-                        color: _isRecording ? Colors.red[700] : Colors.red,
+                        color: _isRecording ? Colors.white : Colors.red,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withOpacity(0.8),
                             offset: const Offset(0, 1),
-                            blurRadius: 2,
+                            blurRadius: 3,
                           ),
                         ],
                       ),
@@ -226,8 +271,8 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
               );
             },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

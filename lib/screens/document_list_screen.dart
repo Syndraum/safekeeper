@@ -292,8 +292,27 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                   itemCount: _filteredDocuments.length,
                   itemBuilder: (context, index) {
                     final doc = _filteredDocuments[index];
+                    final uploadDate = doc['upload_date'] != null
+                        ? DateTime.parse(doc['upload_date'])
+                        : null;
+                    final fileType = doc['file_type'];
+                    
                     return ListTile(
+                      leading: Icon(
+                        _getFileTypeIcon(fileType),
+                        size: 32,
+                        color: Theme.of(context).primaryColor,
+                      ),
                       title: Text(doc['name']),
+                      subtitle: uploadDate != null
+                          ? Text(
+                              _formatDate(uploadDate),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            )
+                          : null,
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -318,6 +337,51 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                   },
                 ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        if (difference.inMinutes == 0) {
+          return 'Just now';
+        }
+        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+      }
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      // Format as date for older files
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  IconData _getFileTypeIcon(String? fileType) {
+    if (fileType == null) return Icons.insert_drive_file;
+    
+    switch (fileType) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'image':
+        return Icons.image;
+      case 'text':
+        return Icons.text_snippet;
+      case 'document':
+        return Icons.description;
+      case 'archive':
+        return Icons.folder_zip;
+      case 'video':
+        return Icons.video_file;
+      case 'audio':
+        return Icons.audio_file;
+      default:
+        return Icons.insert_drive_file;
+    }
   }
 
   void _showDeleteDialog(int id) {

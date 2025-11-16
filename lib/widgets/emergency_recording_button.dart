@@ -5,7 +5,7 @@ import '../services/recording_service.dart';
 
 /// Floating emergency recording button with recording state UI and camera preview
 class EmergencyRecordingButton extends StatefulWidget {
-  final VoidCallback onRecordingComplete;
+  final Function(String path) onRecordingComplete;
   final Function(String) onError;
 
   const EmergencyRecordingButton({
@@ -84,7 +84,7 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
       // Stop recording
       final path = await _recordingService.stopRecording();
       if (path != null) {
-        widget.onRecordingComplete();
+        widget.onRecordingComplete(path);
       } else {
         widget.onError('Failed to save recording');
       }

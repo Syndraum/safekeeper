@@ -251,6 +251,9 @@ class RecordingService {
 
       _currentRecordingPath = null;
 
+      // Clean up camera resources after successful recording
+      await _cleanupCamera();
+
       // Verify final file exists
       final finalFile = File(finalPath);
       if (await finalFile.exists()) {

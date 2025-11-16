@@ -31,7 +31,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
   }
 
   /// Handle recording completion - encrypt and save the file
-  Future<void> _onRecordingComplete() async {
+  Future<void> _onRecordingComplete(String recordingPath) async {
     if (_isProcessing) return;
 
     setState(() {
@@ -39,13 +39,6 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
     });
 
     try {
-      // Get the recorded file path
-      final recordingPath = await _recordingService.stopRecording();
-
-      if (recordingPath == null) {
-        _showError('Failed to save recording');
-        return;
-      }
 
       // Read the recorded file
       final recordingFile = File(recordingPath);

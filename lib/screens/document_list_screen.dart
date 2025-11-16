@@ -76,6 +76,12 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         hmac,
       );
 
+      // Extract file extension, handle files without extension
+      String extension = '';
+      if (name.contains('.')) {
+        extension = name.toLowerCase().split('.').last;
+      }
+
       // Save the decrypted file temporarily for viewing
       Directory tempDir = await getTemporaryDirectory();
       String tempPath = '${tempDir.path}/$name';
@@ -85,8 +91,6 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       // Navigate to a viewer screen
       if (mounted) {
         // Check file extension to determine viewer type
-        String extension = name.toLowerCase().split('.').last;
-
         if (extension == 'pdf') {
           Navigator.push(
             context,
@@ -95,8 +99,17 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                   PDFViewerScreen(filePath: tempPath, fileName: name),
             ),
           );
+        } else if (_isImageExtension(extension)) {
+          // For image files, show image viewer
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  ImageViewerScreen(filePath: tempPath, fileName: name),
+            ),
+          );
         } else {
-          // For non-PDF files, show a generic viewer or download option
+          // For other files, show a generic viewer or download option
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -140,6 +153,11 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               },
             ),
     );
+  }
+
+  bool _isImageExtension(String extension) {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+    return imageExtensions.contains(extension.toLowerCase());
   }
 
   void _showDeleteDialog(int id) {
@@ -232,6 +250,80 @@ class PDFViewerScreen extends StatelessWidget {
   }
 }
 
+/// Image Viewer Screen for image files
+class ImageViewerScreen extends StatelessWidget {
+  final String filePath;
+  final String fileName;
+
+  const ImageViewerScreen({
+    super.key,
+    required this.filePath,
+    required this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(fileName),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Image Info'),
+                  content: Text('File: $fileName\nType: Image'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.file(
+            File(filePath),
+            errorBuilder: (context, error, stackTrace) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading image',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error.toString(),
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+      backgroundColor: Colors.black,
+    );
+  }
+}
+
 /// Generic File Viewer for non-PDF files
 class GenericFileViewerScreen extends StatelessWidget {
   final String filePath;
@@ -245,7 +337,15 @@ class GenericFileViewerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String extension = fileName.toLowerCase().split('.').last;
+    // Extract file extension, handle files without extension
+    String extension = '';
+    if (fileName.contains('.')) {
+      extension = fileName.toLowerCase().split('.').last;
+    }
+    
+    print('file path: $filePath');
+    print('File name: $fileName');
+    print('File extension: $extension');
 
     return Scaffold(
       appBar: AppBar(title: Text(fileName)),
@@ -268,7 +368,9 @@ class GenericFileViewerScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'File Type: ${extension.toUpperCase()}',
+                extension.isNotEmpty 
+                    ? 'File Type: ${extension.toUpperCase()}'
+                    : 'File Type: Unknown',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 30),

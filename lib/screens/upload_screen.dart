@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
 import '../services/file_type_detector.dart';
+import '../widgets/vocal_memo_recorder.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -161,6 +162,39 @@ class _UploadScreenState extends State<UploadScreen> {
     }
   }
 
+  Future<void> _showVocalMemoRecorder() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => VocalMemoRecorder(
+        onRecordingComplete: (filePath) async {
+          Navigator.of(context).pop();
+          
+          // Generate default name
+          String defaultName = 'vocal_memo_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          
+          // Show rename dialog
+          String? newName = await _showRenameDialog(defaultName);
+          if (newName != null && mounted) {
+            File file = File(filePath);
+            await _encryptAndSaveFile(file, newName);
+          }
+        },
+        onError: (error) {
+          Navigator.of(context).pop();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,6 +210,22 @@ class _UploadScreenState extends State<UploadScreen> {
                 icon: const Icon(Icons.camera_alt, size: 28),
                 label: const Text(
                   'Take a Photo',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 15,
+                  ),
+                  minimumSize: const Size(double.infinity, 60),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _showVocalMemoRecorder,
+                icon: const Icon(Icons.mic, size: 28),
+                label: const Text(
+                  'Record Vocal Memo',
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(

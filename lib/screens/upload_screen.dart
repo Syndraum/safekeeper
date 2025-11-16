@@ -19,6 +19,41 @@ class _UploadScreenState extends State<UploadScreen> {
   final _encryptionService = EncryptionService();
   final _documentService = DocumentService();
 
+  // Show dialog to rename file before upload
+  Future<String?> _showRenameDialog(String originalName) async {
+    final TextEditingController controller = TextEditingController(text: originalName);
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename File'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'File Name',
+            hintText: 'Enter file name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                Navigator.pop(context, newName);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Common method to encrypt and save a file using hybrid encryption
   Future<void> _encryptAndSaveFile(File file, String fileName) async {
     try {
@@ -73,7 +108,13 @@ class _UploadScreenState extends State<UploadScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
       if (result != null) {
         File file = File(result.files.single.path!);
-        await _encryptAndSaveFile(file, result.files.single.name);
+        String originalName = result.files.single.name;
+        
+        // Show rename dialog
+        String? newName = await _showRenameDialog(originalName);
+        if (newName != null && mounted) {
+          await _encryptAndSaveFile(file, newName);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -93,8 +134,13 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if (photo != null) {
         File file = File(photo.path);
-        String fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await _encryptAndSaveFile(file, fileName);
+        String defaultName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        
+        // Show rename dialog
+        String? newName = await _showRenameDialog(defaultName);
+        if (newName != null && mounted) {
+          await _encryptAndSaveFile(file, newName);
+        }
       }
     } catch (e) {
       if (mounted) {

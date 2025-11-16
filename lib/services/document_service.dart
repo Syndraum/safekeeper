@@ -83,6 +83,16 @@ class DocumentService {
     return results.isNotEmpty ? results.first : null;
   }
 
+  Future<void> updateDocumentName(int id, String newName) async {
+    final db = await database;
+    await db.update(
+      'documents',
+      {'name': newName},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> deleteDocument(int id) async {
     final db = await database;
     await db.delete('documents', where: 'id = ?', whereArgs: [id]);

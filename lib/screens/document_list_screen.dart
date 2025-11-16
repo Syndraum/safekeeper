@@ -17,19 +17,96 @@ class DocumentListScreen extends StatefulWidget {
 class _DocumentListScreenState extends State<DocumentListScreen> {
   final DocumentService _documentService = DocumentService();
   final _encryptionService = EncryptionService();
+  final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _documents = [];
+  List<Map<String, dynamic>> _filteredDocuments = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadDocuments();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+      _filterDocuments();
+    });
+  }
+
+  void _filterDocuments() {
+    if (_searchQuery.isEmpty) {
+      _filteredDocuments = List.from(_documents);
+    } else {
+      _filteredDocuments = _documents.where((doc) {
+        final name = doc['name'].toString().toLowerCase();
+        return name.contains(_searchQuery);
+      }).toList();
+    }
   }
 
   Future<void> _loadDocuments() async {
     final documents = await _documentService.getDocuments();
     setState(() {
       _documents = documents;
+      _filterDocuments();
     });
+  }
+
+  Future<void> _showRenameDialog(int id, String currentName) async {
+    final TextEditingController controller = TextEditingController(text: currentName);
+    
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Document'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Document Name',
+            hintText: 'Enter new name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.pop(context, name);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName != currentName) {
+      await _documentService.updateDocumentName(id, newName);
+      _loadDocuments();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Document renamed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteDocument(int id) async {
@@ -134,24 +211,81 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Document List')),
-      body: _documents.isEmpty
-          ? Center(child: Text('No documents uploaded yet.'))
-          : ListView.builder(
-              itemCount: _documents.length,
-              itemBuilder: (context, index) {
-                final doc = _documents[index];
-                return ListTile(
-                  title: Text(doc['name']),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => _showDeleteDialog(doc['id']),
-                  ),
-                  onTap: () =>
-                      _openDocument(doc['id'], doc['path'], doc['name']),
-                );
-              },
+      appBar: AppBar(
+        title: const Text('Document List'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60.0),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search documents...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
+          ),
+        ),
+      ),
+      body: _documents.isEmpty
+          ? const Center(child: Text('No documents uploaded yet.'))
+          : _filteredDocuments.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No documents found for "$_searchQuery"',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _filteredDocuments.length,
+                  itemBuilder: (context, index) {
+                    final doc = _filteredDocuments[index];
+                    return ListTile(
+                      title: Text(doc['name']),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showRenameDialog(
+                              doc['id'],
+                              doc['name'],
+                            ),
+                            tooltip: 'Rename',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _showDeleteDialog(doc['id']),
+                            tooltip: 'Delete',
+                          ),
+                        ],
+                      ),
+                      onTap: () =>
+                          _openDocument(doc['id'], doc['path'], doc['name']),
+                    );
+                  },
+                ),
     );
   }
 

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
+import '../services/file_type_detector.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -19,11 +20,52 @@ class _UploadScreenState extends State<UploadScreen> {
   final _encryptionService = EncryptionService();
   final _documentService = DocumentService();
 
+  // Show dialog to rename file before upload
+  Future<String?> _showRenameDialog(String originalName) async {
+    final TextEditingController controller = TextEditingController(text: originalName);
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename File'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'File Name',
+            hintText: 'Enter file name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                Navigator.pop(context, newName);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Common method to encrypt and save a file using hybrid encryption
   Future<void> _encryptAndSaveFile(File file, String fileName) async {
     try {
       // Read file bytes
       Uint8List fileBytes = await file.readAsBytes();
+
+      // Detect file type from content (not extension)
+      final fileTypeInfo = FileTypeDetector.detectFromBytes(
+        fileBytes,
+        fileName: fileName,
+      );
 
       // Encrypt file using hybrid encryption (AES + RSA)
       final encryptionResult = await _encryptionService.encryptFile(fileBytes);
@@ -37,20 +79,23 @@ class _UploadScreenState extends State<UploadScreen> {
       // Convert encrypted key, IV, and HMAC to base64 for storage
       final base64Map = encryptionResult.toBase64Map();
 
-      // Save document metadata to database
+      // Save document metadata to database with detected file type
       await _documentService.addDocument(
         fileName,
         encryptedPath,
         base64Map['encryptedKey']!,
         base64Map['iv']!,
         hmac: base64Map['hmac'],
+        mimeType: fileTypeInfo.mimeType,
+        fileType: fileTypeInfo.category.name,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Document uploaded and secured with hybrid encryption!',
+              'Document uploaded and secured with hybrid encryption!\n'
+              'Detected type: ${fileTypeInfo.category.name}',
             ),
             backgroundColor: Colors.green,
           ),
@@ -73,7 +118,13 @@ class _UploadScreenState extends State<UploadScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
       if (result != null) {
         File file = File(result.files.single.path!);
-        await _encryptAndSaveFile(file, result.files.single.name);
+        String originalName = result.files.single.name;
+        
+        // Show rename dialog
+        String? newName = await _showRenameDialog(originalName);
+        if (newName != null && mounted) {
+          await _encryptAndSaveFile(file, newName);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -93,8 +144,13 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if (photo != null) {
         File file = File(photo.path);
-        String fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await _encryptAndSaveFile(file, fileName);
+        String defaultName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        
+        // Show rename dialog
+        String? newName = await _showRenameDialog(defaultName);
+        if (newName != null && mounted) {
+          await _encryptAndSaveFile(file, newName);
+        }
       }
     } catch (e) {
       if (mounted) {

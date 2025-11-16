@@ -9,6 +9,8 @@ class Document {
   final String encryptedKey;
   final String iv;
   final Uint8List? hmac; // Declare the hmac field as nullable Uint8List
+  final String? mimeType; // MIME type of the file
+  final String? fileType; // File type category (pdf, image, text, etc.)
 
   Document({
     required this.id,
@@ -18,6 +20,8 @@ class Document {
     required this.encryptedKey,
     required this.iv,
     this.hmac, // Optional field
+    this.mimeType, // Optional field
+    this.fileType, // Optional field
   });
 
   // Serialize to JSON for persistence
@@ -29,6 +33,8 @@ class Document {
     'encryptedKey': encryptedKey,
     'iv': iv,
     if (hmac != null) 'hmac': base64.encode(hmac!),
+    if (mimeType != null) 'mimeType': mimeType,
+    if (fileType != null) 'fileType': fileType,
   };
 
   // Deserialize from JSON
@@ -40,5 +46,7 @@ class Document {
     encryptedKey: json['encryptedKey'],
     iv: json['iv'],
     hmac: json['hmac'] != null ? base64.decode(json['hmac']) : null,
+    mimeType: json['mimeType'],
+    fileType: json['fileType'],
   );
 }

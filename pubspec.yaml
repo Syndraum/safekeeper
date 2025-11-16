@@ -57,6 +57,8 @@ dependencies:
 
   crypto: ^3.0.3
 
+  mime: ^1.0.5  # For MIME type detection
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

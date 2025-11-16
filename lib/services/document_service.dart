@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+// import 'package:sqflite/sqflite.dart';
 import 'dart:io';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 
 class DocumentService {
@@ -12,12 +12,12 @@ class DocumentService {
     return _database!;
   }
 
-  // static void init() {
-  //   databaseFactory = databaseFactoryFfi;
-  // }
+  static void init() {
+    databaseFactory = databaseFactoryFfi;
+  }
 
   Future<Database> _initDB() async {
-    // databaseFactory = databaseFactoryFfi;
+    databaseFactory = databaseFactoryFfi;
     String path = join(await getDatabasesPath(), 'documents.db');
     return await openDatabase(
       path,

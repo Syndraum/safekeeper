@@ -141,12 +141,22 @@ class FileTypeDetector {
       return FileTypeCategory.archive;
     }
     
-    // MP4/MOV: ftyp
+    // MP4/MOV/M4A: ftyp
     if (bytes.length >= 12 &&
         bytes[4] == 0x66 &&
         bytes[5] == 0x74 &&
         bytes[6] == 0x79 &&
         bytes[7] == 0x70) {
+      // Check if it's M4A (audio) or MP4 (video)
+      // M4A files typically have 'M4A ' or 'mp42' in the ftyp box
+      if (bytes.length >= 12) {
+        // Check for M4A signature
+        if ((bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41) || // M4A
+            (bytes.length >= 16 && bytes[8] == 0x6D && bytes[9] == 0x70 && 
+             bytes[10] == 0x34 && bytes[11] == 0x32)) { // mp42 (can be audio)
+          return FileTypeCategory.audio;
+        }
+      }
       return FileTypeCategory.video;
     }
     
@@ -238,7 +248,10 @@ class FileTypeDetector {
       return FileTypeCategory.archive;
     } else if (lower.startsWith('video/')) {
       return FileTypeCategory.video;
-    } else if (lower.startsWith('audio/')) {
+    } else if (lower.startsWith('audio/') ||
+        lower == 'application/x-m4a' ||
+        lower == 'audio/x-m4a' ||
+        lower == 'audio/mp4') {
       return FileTypeCategory.audio;
     }
     
@@ -261,7 +274,7 @@ class FileTypeDetector {
       case FileTypeCategory.video:
         return 'video/mp4';
       case FileTypeCategory.audio:
-        return 'audio/mpeg';
+        return 'audio/mp4'; // Default to M4A format
       case FileTypeCategory.unknown:
         return 'application/octet-stream';
     }

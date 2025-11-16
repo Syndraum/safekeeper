@@ -19,7 +19,7 @@ class DocumentService {
     String path = join(await getDatabasesPath(), 'documents.db');
     return await openDatabase(
       path,
-      version: 3, // Incremented version for HMAC support
+      version: 4, // Incremented version for MIME type and file type support
       onCreate: (db, version) {
         return db.execute(
           'CREATE TABLE documents('
@@ -29,7 +29,9 @@ class DocumentService {
           'encrypted_key TEXT, '
           'iv TEXT, '
           'hmac TEXT, '
-          'upload_date TEXT'
+          'upload_date TEXT, '
+          'mime_type TEXT, '
+          'file_type TEXT'
           ')',
         );
       },
@@ -46,6 +48,11 @@ class DocumentService {
           // Migration from version 2 to 3 - Add HMAC column
           await db.execute('ALTER TABLE documents ADD COLUMN hmac TEXT');
         }
+        if (oldVersion < 4) {
+          // Migration from version 3 to 4 - Add MIME type and file type columns
+          await db.execute('ALTER TABLE documents ADD COLUMN mime_type TEXT');
+          await db.execute('ALTER TABLE documents ADD COLUMN file_type TEXT');
+        }
       },
     );
   }
@@ -56,6 +63,8 @@ class DocumentService {
     String encryptedKey,
     String iv, {
     String? hmac,
+    String? mimeType,
+    String? fileType,
   }) async {
     final db = await database;
     await db.insert('documents', {
@@ -65,6 +74,8 @@ class DocumentService {
       'iv': iv,
       if (hmac != null) 'hmac': hmac,
       'upload_date': DateTime.now().toIso8601String(),
+      if (mimeType != null) 'mime_type': mimeType,
+      if (fileType != null) 'file_type': fileType,
     });
   }
 

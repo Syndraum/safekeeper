@@ -6,6 +6,7 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/document_service.dart';
 import '../services/encryption_service.dart';
+import '../services/file_type_detector.dart';
 
 class DocumentListScreen extends StatefulWidget {
   const DocumentListScreen({super.key});
@@ -153,10 +154,30 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         hmac,
       );
 
-      // Extract file extension, handle files without extension
-      String extension = '';
-      if (name.contains('.')) {
-        extension = name.toLowerCase().split('.').last;
+      // Get stored file type from database, or detect from content if not available
+      String? fileTypeStr = doc['file_type'];
+      String? mimeType = doc['mime_type'];
+      
+      FileTypeCategory fileType;
+      if (fileTypeStr != null && fileTypeStr.isNotEmpty) {
+        // Use stored file type
+        try {
+          fileType = FileTypeCategory.values.firstWhere(
+            (e) => e.name == fileTypeStr,
+            orElse: () => FileTypeCategory.unknown,
+          );
+        } catch (e) {
+          fileType = FileTypeCategory.unknown;
+        }
+      } else {
+        // Fallback: detect from decrypted content for old documents
+        final detectedInfo = FileTypeDetector.detectFromBytes(
+          decryptedBytes,
+          fileName: name,
+        );
+        fileType = detectedInfo.category;
+        mimeType = detectedInfo.mimeType;
+        print('File type not in database, detected: ${fileType.name}, MIME: $mimeType');
       }
 
       // Save the decrypted file temporarily for viewing
@@ -165,35 +186,45 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       File tempFile = File(tempPath);
       await tempFile.writeAsBytes(decryptedBytes);
 
-      // Navigate to a viewer screen
+      // Navigate to a viewer screen based on detected file type
       if (mounted) {
-        // Check file extension to determine viewer type
-        if (extension == 'pdf') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  PDFViewerScreen(filePath: tempPath, fileName: name),
-            ),
-          );
-        } else if (_isImageExtension(extension)) {
-          // For image files, show image viewer
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  ImageViewerScreen(filePath: tempPath, fileName: name),
-            ),
-          );
-        } else {
-          // For other files, show a generic viewer or download option
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  GenericFileViewerScreen(filePath: tempPath, fileName: name),
-            ),
-          );
+        switch (fileType) {
+          case FileTypeCategory.pdf:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PDFViewerScreen(
+                  filePath: tempPath,
+                  fileName: name,
+                  mimeType: mimeType,
+                ),
+              ),
+            );
+            break;
+          case FileTypeCategory.image:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ImageViewerScreen(
+                  filePath: tempPath,
+                  fileName: name,
+                  mimeType: mimeType,
+                ),
+              ),
+            );
+            break;
+          default:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GenericFileViewerScreen(
+                  filePath: tempPath,
+                  fileName: name,
+                  fileType: fileType,
+                  mimeType: mimeType,
+                ),
+              ),
+            );
         }
       }
     } catch (e) {
@@ -289,11 +320,6 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     );
   }
 
-  bool _isImageExtension(String extension) {
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-    return imageExtensions.contains(extension.toLowerCase());
-  }
-
   void _showDeleteDialog(int id) {
     showDialog(
       context: context,
@@ -323,11 +349,13 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 class PDFViewerScreen extends StatelessWidget {
   final String filePath;
   final String fileName;
+  final String? mimeType;
 
   const PDFViewerScreen({
     super.key,
     required this.filePath,
     required this.fileName,
+    this.mimeType,
   });
 
   @override
@@ -343,7 +371,11 @@ class PDFViewerScreen extends StatelessWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Document Info'),
-                  content: Text('File: $fileName\nType: PDF'),
+                  content: Text(
+                    'File: $fileName\n'
+                    'Type: PDF\n'
+                    '${mimeType != null ? 'MIME: $mimeType' : ''}',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -388,11 +420,13 @@ class PDFViewerScreen extends StatelessWidget {
 class ImageViewerScreen extends StatelessWidget {
   final String filePath;
   final String fileName;
+  final String? mimeType;
 
   const ImageViewerScreen({
     super.key,
     required this.filePath,
     required this.fileName,
+    this.mimeType,
   });
 
   @override
@@ -408,7 +442,11 @@ class ImageViewerScreen extends StatelessWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Image Info'),
-                  content: Text('File: $fileName\nType: Image'),
+                  content: Text(
+                    'File: $fileName\n'
+                    'Type: Image\n'
+                    '${mimeType != null ? 'MIME: $mimeType' : ''}',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -462,24 +500,23 @@ class ImageViewerScreen extends StatelessWidget {
 class GenericFileViewerScreen extends StatelessWidget {
   final String filePath;
   final String fileName;
+  final FileTypeCategory fileType;
+  final String? mimeType;
 
   const GenericFileViewerScreen({
     super.key,
     required this.filePath,
     required this.fileName,
+    required this.fileType,
+    this.mimeType,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Extract file extension, handle files without extension
-    String extension = '';
-    if (fileName.contains('.')) {
-      extension = fileName.toLowerCase().split('.').last;
-    }
-    
     print('file path: $filePath');
     print('File name: $fileName');
-    print('File extension: $extension');
+    print('File type: ${fileType.name}');
+    print('MIME type: $mimeType');
 
     return Scaffold(
       appBar: AppBar(title: Text(fileName)),
@@ -490,7 +527,7 @@ class GenericFileViewerScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _getFileIcon(extension),
+                _getFileIcon(fileType),
                 size: 100,
                 color: Theme.of(context).primaryColor,
               ),
@@ -502,11 +539,16 @@ class GenericFileViewerScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                extension.isNotEmpty 
-                    ? 'File Type: ${extension.toUpperCase()}'
-                    : 'File Type: Unknown',
+                'File Type: ${_getFileTypeLabel(fileType)}',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
+              if (mimeType != null) ...[
+                const SizedBox(height: 5),
+                Text(
+                  'MIME: $mimeType',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               const SizedBox(height: 30),
               const Text(
                 'This file type cannot be previewed in the app.',
@@ -541,23 +583,45 @@ class GenericFileViewerScreen extends StatelessWidget {
     );
   }
 
-  IconData _getFileIcon(String extension) {
-    switch (extension) {
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
+  IconData _getFileIcon(FileTypeCategory type) {
+    switch (type) {
+      case FileTypeCategory.pdf:
+        return Icons.picture_as_pdf;
+      case FileTypeCategory.image:
         return Icons.image;
-      case 'doc':
-      case 'docx':
-        return Icons.description;
-      case 'txt':
+      case FileTypeCategory.text:
         return Icons.text_snippet;
-      case 'zip':
-      case 'rar':
+      case FileTypeCategory.document:
+        return Icons.description;
+      case FileTypeCategory.archive:
         return Icons.folder_zip;
-      default:
+      case FileTypeCategory.video:
+        return Icons.video_file;
+      case FileTypeCategory.audio:
+        return Icons.audio_file;
+      case FileTypeCategory.unknown:
         return Icons.insert_drive_file;
+    }
+  }
+
+  String _getFileTypeLabel(FileTypeCategory type) {
+    switch (type) {
+      case FileTypeCategory.pdf:
+        return 'PDF Document';
+      case FileTypeCategory.image:
+        return 'Image';
+      case FileTypeCategory.text:
+        return 'Text File';
+      case FileTypeCategory.document:
+        return 'Document';
+      case FileTypeCategory.archive:
+        return 'Archive';
+      case FileTypeCategory.video:
+        return 'Video';
+      case FileTypeCategory.audio:
+        return 'Audio';
+      case FileTypeCategory.unknown:
+        return 'Unknown';
     }
   }
 }

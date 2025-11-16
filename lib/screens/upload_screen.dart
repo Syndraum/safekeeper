@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
+import '../services/file_type_detector.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -60,6 +61,12 @@ class _UploadScreenState extends State<UploadScreen> {
       // Read file bytes
       Uint8List fileBytes = await file.readAsBytes();
 
+      // Detect file type from content (not extension)
+      final fileTypeInfo = FileTypeDetector.detectFromBytes(
+        fileBytes,
+        fileName: fileName,
+      );
+
       // Encrypt file using hybrid encryption (AES + RSA)
       final encryptionResult = await _encryptionService.encryptFile(fileBytes);
 
@@ -72,20 +79,23 @@ class _UploadScreenState extends State<UploadScreen> {
       // Convert encrypted key, IV, and HMAC to base64 for storage
       final base64Map = encryptionResult.toBase64Map();
 
-      // Save document metadata to database
+      // Save document metadata to database with detected file type
       await _documentService.addDocument(
         fileName,
         encryptedPath,
         base64Map['encryptedKey']!,
         base64Map['iv']!,
         hmac: base64Map['hmac'],
+        mimeType: fileTypeInfo.mimeType,
+        fileType: fileTypeInfo.category.name,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Document uploaded and secured with hybrid encryption!',
+              'Document uploaded and secured with hybrid encryption!\n'
+              'Detected type: ${fileTypeInfo.category.name}',
             ),
             backgroundColor: Colors.green,
           ),

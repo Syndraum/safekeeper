@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/auth_view_model.dart';
 
 /// Écran de configuration initiale du mot de passe
 class PasswordSetupScreen extends StatefulWidget {
@@ -13,11 +14,9 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -31,31 +30,24 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    final viewModel = context.read<AuthViewModel>();
     final password = _passwordController.text;
-    final success = await _authService.setPassword(password);
-
-    setState(() {
-      _isLoading = false;
-    });
+    final success = await viewModel.setupPassword(password);
 
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mot de passe configuré avec succès !'),
+          SnackBar(
+            content: Text(viewModel.successMessage ?? 'Mot de passe configuré avec succès !'),
             backgroundColor: Colors.green,
           ),
         );
         // Retourner à l'écran principal
         Navigator.of(context).pushReplacementNamed('/');
-      } else {
+      } else if (viewModel.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la configuration du mot de passe'),
+          SnackBar(
+            content: Text(viewModel.error!.message),
             backgroundColor: Colors.red,
           ),
         );
@@ -65,6 +57,8 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<AuthViewModel>();
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configuration du mot de passe'),
@@ -220,14 +214,14 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
 
                 // Bouton de configuration
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _setupPassword,
+                  onPressed: viewModel.isBusy ? null : _setupPassword,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isLoading
+                  child: viewModel.isBusy
                       ? const SizedBox(
                           height: 20,
                           width: 20,

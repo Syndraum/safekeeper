@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/auth_view_model.dart';
 
 /// Écran de déverrouillage pour accéder aux documents
 class UnlockScreen extends StatefulWidget {
@@ -11,10 +12,8 @@ class UnlockScreen extends StatefulWidget {
 
 class _UnlockScreenState extends State<UnlockScreen> {
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
   int _failedAttempts = 0;
 
   @override
@@ -34,16 +33,9 @@ class _UnlockScreenState extends State<UnlockScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    final viewModel = context.read<AuthViewModel>();
     final password = _passwordController.text;
-    final success = await _authService.verifyPassword(password);
-
-    setState(() {
-      _isLoading = false;
-    });
+    final success = await viewModel.verifyPassword(password);
 
     if (mounted) {
       if (success) {
@@ -57,11 +49,14 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
         _passwordController.clear();
 
+        // Show error from ViewModel or default message
+        final errorMessage = viewModel.hasError
+            ? viewModel.error!.message
+            : 'Mot de passe incorrect (${_failedAttempts} tentative${_failedAttempts > 1 ? 's' : ''})';
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Mot de passe incorrect (${_failedAttempts} tentative${_failedAttempts > 1 ? 's' : ''})',
-            ),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -76,6 +71,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<AuthViewModel>();
+    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -184,7 +181,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _unlock,
+                              onPressed: viewModel.isBusy ? null : _unlock,
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
@@ -194,7 +191,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                                 ),
                                 elevation: 2,
                               ),
-                              child: _isLoading
+                              child: viewModel.isBusy
                                   ? const SizedBox(
                                       height: 20,
                                       width: 20,

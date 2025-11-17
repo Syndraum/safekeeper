@@ -1,14 +1,6 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:image_picker/image_picker.dart';
-import '../services/encryption_service.dart';
-import '../services/document_service.dart';
-import '../services/file_type_detector.dart';
-import '../services/cloud_backup_service.dart';
-import '../services/settings_service.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/upload_view_model.dart';
 import '../widgets/vocal_memo_recorder.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -19,11 +11,6 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
-  final _imagePicker = ImagePicker();
-  final _encryptionService = EncryptionService();
-  final _documentService = DocumentService();
-  final _backupService = CloudBackupService();
-  final _settingsService = SettingsService();
 
   // Show dialog to rename file before upload
   Future<String?> _showRenameDialog(String originalName) async {
@@ -60,91 +47,70 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
-  // Common method to encrypt and save a file using hybrid encryption
-  Future<void> _encryptAndSaveFile(File file, String fileName) async {
-    try {
-      // Read file bytes
-      Uint8List fileBytes = await file.readAsBytes();
-
-      // Detect file type from content (not extension)
-      final fileTypeInfo = FileTypeDetector.detectFromBytes(
-        fileBytes,
-        fileName: fileName,
-      );
-
-      // Encrypt file using hybrid encryption (AES + RSA)
-      final encryptionResult = await _encryptionService.encryptFile(fileBytes);
-
-      // Save the encrypted file locally
-      Directory appDir = await getApplicationDocumentsDirectory();
-      String encryptedPath = '${appDir.path}/$fileName.enc';
-      File encryptedFile = File(encryptedPath);
-      await encryptedFile.writeAsBytes(encryptionResult.encryptedData);
-
-      // Convert encrypted key, IV, and HMAC to base64 for storage
-      final base64Map = encryptionResult.toBase64Map();
-
-      // Save document metadata to database with detected file type
-      await _documentService.addDocument(
-        fileName,
-        encryptedPath,
-        base64Map['encryptedKey']!,
-        base64Map['iv']!,
-        hmac: base64Map['hmac'],
-        mimeType: fileTypeInfo.mimeType,
-        fileType: fileTypeInfo.category.name,
-      );
-
-      // Get the document ID of the newly added document
-      final documents = await _documentService.getDocuments();
-      final newDocument = documents.lastWhere(
-        (doc) => doc['name'] == fileName && doc['path'] == encryptedPath,
-      );
-      final documentId = newDocument['id'] as int;
-
-      // Trigger cloud backup if enabled and auto-backup is on
-      if (_settingsService.isBackupEnabled() && 
-          _settingsService.isAutoBackupEnabled()) {
-        // Start backup in background (don't await)
-        _backupService.backupDocument(documentId, encryptedPath).then((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Document backed up to cloud!'),
-                backgroundColor: Colors.blue,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        }).catchError((e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Cloud backup failed: $e'),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        });
-      }
-
-      if (mounted) {
+  Future<void> _pickAndUploadFile() async {
+    final viewModel = context.read<UploadViewModel>();
+    
+    // First, let user pick the file - this will show the file picker
+    // We pass a temporary name, but will rename after selection
+    final result = await viewModel.pickAndUploadFile('temp_document');
+    
+    if (result == null) {
+      // User cancelled or error occurred
+      if (mounted && viewModel.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Document uploaded and secured with hybrid encryption!\n'
-              'Detected type: ${fileTypeInfo.category.name}',
-            ),
+            content: Text(viewModel.error!.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // File was selected, now show rename dialog
+    String? newName = await _showRenameDialog(result.fileName);
+    if (newName == null || newName == result.fileName) {
+      // User cancelled rename or kept same name, show success with original name
+      if (mounted) {
+        String message = 'Document uploaded and secured with hybrid encryption!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
             backgroundColor: Colors.green,
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
+      return;
+    }
+    
+    // Rename the document
+    final renameSuccess = await viewModel.renameDocument(result.documentId, newName);
+    
+    if (mounted) {
+      if (renameSuccess) {
+        String message = 'Document uploaded and renamed to "$newName"!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Encryption error: $e'),
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error?.message ?? 'Failed to rename document'),
             backgroundColor: Colors.red,
           ),
         );
@@ -152,55 +118,82 @@ class _UploadScreenState extends State<UploadScreen> {
     }
   }
 
-  Future<void> _pickAndUploadFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-      if (result != null) {
-        File file = File(result.files.single.path!);
-        String originalName = result.files.single.name;
-        
-        // Show rename dialog
-        String? newName = await _showRenameDialog(originalName);
-        if (newName != null && mounted) {
-          await _encryptAndSaveFile(file, newName);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('File selection error: $e')));
-      }
-    }
-  }
-
   Future<void> _takePictureAndUpload() async {
-    try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
-
-      if (photo != null) {
-        File file = File(photo.path);
-        String defaultName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        
-        // Show rename dialog
-        String? newName = await _showRenameDialog(defaultName);
-        if (newName != null && mounted) {
-          await _encryptAndSaveFile(file, newName);
-        }
+    final viewModel = context.read<UploadViewModel>();
+    
+    // Generate default name for the photo
+    String defaultName = viewModel.generatePhotoName();
+    
+    // Take picture first
+    final result = await viewModel.takePictureAndUpload(defaultName);
+    
+    if (result == null) {
+      // User cancelled or error occurred
+      if (mounted && viewModel.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error!.message),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
+      return;
+    }
+    
+    // Photo was taken, now show rename dialog
+    String? newName = await _showRenameDialog(result.fileName);
+    if (newName == null || newName == result.fileName) {
+      // User cancelled rename or kept same name
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Camera error: $e')));
+        String message = 'Photo uploaded and secured!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Rename the document
+    final renameSuccess = await viewModel.renameDocument(result.documentId, newName);
+    
+    if (mounted) {
+      if (renameSuccess) {
+        String message = 'Photo uploaded and renamed to "$newName"!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error?.message ?? 'Failed to rename document'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   Future<void> _showVocalMemoRecorder() async {
+    final viewModel = context.read<UploadViewModel>();
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -209,13 +202,37 @@ class _UploadScreenState extends State<UploadScreen> {
           Navigator.of(context).pop();
           
           // Generate default name
-          String defaultName = 'vocal_memo_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          String defaultName = viewModel.generateVocalMemoName();
           
           // Show rename dialog
-          String? newName = await _showRenameDialog(defaultName);
-          if (newName != null && mounted) {
-            File file = File(filePath);
-            await _encryptAndSaveFile(file, newName);
+          String? fileName = await _showRenameDialog(defaultName);
+          if (fileName != null && mounted) {
+            final result = await viewModel.uploadVocalMemo(filePath, fileName);
+            
+            if (mounted) {
+              if (result != null) {
+                String message = 'Vocal memo uploaded and secured!\n'
+                    'Detected type: ${result.fileType}';
+                
+                if (result.backupStarted) {
+                  message += '\nBackup started...';
+                }
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else if (viewModel.hasError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(viewModel.error!.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
           }
         },
         onError: (error) {

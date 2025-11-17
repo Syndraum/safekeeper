@@ -1,12 +1,14 @@
 import '../core/base_view_model.dart';
 import '../services/settings_service.dart';
 import '../services/cloud_backup_service.dart';
+import '../services/cache_service.dart';
 import '../services/cloud_providers/google_drive_provider.dart';
 import '../services/cloud_providers/dropbox_provider.dart';
 
 class SettingsViewModel extends BaseViewModel {
   final SettingsService _settingsService;
   final CloudBackupService _backupService;
+  final CacheService _cacheService;
   final GoogleDriveProvider _googleDriveProvider;
   final DropboxProvider _dropboxProvider;
 
@@ -16,14 +18,17 @@ class SettingsViewModel extends BaseViewModel {
   bool _isDropboxEnabled = false;
   bool _isGoogleDriveAuthenticated = false;
   bool _isDropboxAuthenticated = false;
+  String _cacheSize = '0 B';
 
   SettingsViewModel({
     required SettingsService settingsService,
     required CloudBackupService backupService,
+    required CacheService cacheService,
     required GoogleDriveProvider googleDriveProvider,
     required DropboxProvider dropboxProvider,
   })  : _settingsService = settingsService,
         _backupService = backupService,
+        _cacheService = cacheService,
         _googleDriveProvider = googleDriveProvider,
         _dropboxProvider = dropboxProvider;
 
@@ -34,6 +39,7 @@ class SettingsViewModel extends BaseViewModel {
   bool get isDropboxEnabled => _isDropboxEnabled;
   bool get isGoogleDriveAuthenticated => _isGoogleDriveAuthenticated;
   bool get isDropboxAuthenticated => _isDropboxAuthenticated;
+  String get cacheSize => _cacheSize;
   
   List<String> get enabledProviders => _settingsService.getEnabledProviders();
   bool get hasEnabledProvider => _settingsService.hasEnabledProvider();
@@ -48,9 +54,72 @@ class SettingsViewModel extends BaseViewModel {
         _isDropboxEnabled = _settingsService.isDropboxEnabled();
         _isGoogleDriveAuthenticated = _settingsService.isGoogleDriveAuthenticated();
         _isDropboxAuthenticated = _settingsService.isDropboxAuthenticated();
+        await _updateCacheSize();
       },
       errorMessage: 'Failed to load settings',
     );
+  }
+
+  /// Update cache size
+  Future<void> _updateCacheSize() async {
+    final sizeInBytes = await _cacheService.getCacheSize();
+    _cacheSize = _cacheService.formatBytes(sizeInBytes);
+  }
+
+  /// Clear all cache
+  Future<bool> clearCache() async {
+    final result = await runBusyFutureWithSuccess(
+      () async {
+        final deletedCount = await _cacheService.clearAllCache();
+        await _updateCacheSize();
+        return deletedCount;
+      },
+      successMessage: 'Cache cleared successfully',
+      errorMessage: 'Failed to clear cache',
+    );
+    return result != null;
+  }
+
+  /// Clear image cache only
+  Future<bool> clearImageCache() async {
+    final result = await runBusyFutureWithSuccess(
+      () async {
+        final deletedCount = await _cacheService.clearImageCache();
+        await _updateCacheSize();
+        return deletedCount;
+      },
+      successMessage: 'Image cache cleared successfully',
+      errorMessage: 'Failed to clear image cache',
+    );
+    return result != null;
+  }
+
+  /// Clear audio cache only
+  Future<bool> clearAudioCache() async {
+    final result = await runBusyFutureWithSuccess(
+      () async {
+        final deletedCount = await _cacheService.clearAudioCache();
+        await _updateCacheSize();
+        return deletedCount;
+      },
+      successMessage: 'Audio cache cleared successfully',
+      errorMessage: 'Failed to clear audio cache',
+    );
+    return result != null;
+  }
+
+  /// Clear PDF cache only
+  Future<bool> clearPdfCache() async {
+    final result = await runBusyFutureWithSuccess(
+      () async {
+        final deletedCount = await _cacheService.clearPdfCache();
+        await _updateCacheSize();
+        return deletedCount;
+      },
+      successMessage: 'PDF cache cleared successfully',
+      errorMessage: 'Failed to clear PDF cache',
+    );
+    return result != null;
   }
 
   /// Toggle backup enabled/disabled

@@ -41,6 +41,7 @@ class AuthViewModel extends BaseViewModel {
         await _authService.setPassword(password);
         _isPasswordSet = true;
         _isAuthenticated = true;
+        return true;
       },
       successMessage: 'Password set successfully',
       errorMessage: 'Failed to set password',

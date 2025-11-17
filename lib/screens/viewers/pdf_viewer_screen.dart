@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import '../../services/cache_service.dart';
 
 /// PDF Viewer Screen with proper Scaffold wrapper
-class PDFViewerScreen extends StatelessWidget {
+class PDFViewerScreen extends StatefulWidget {
   final String filePath;
   final String fileName;
   final String? mimeType;
@@ -15,10 +16,24 @@ class PDFViewerScreen extends StatelessWidget {
   });
 
   @override
+  State<PDFViewerScreen> createState() => _PDFViewerScreenState();
+}
+
+class _PDFViewerScreenState extends State<PDFViewerScreen> {
+  final CacheService _cacheService = CacheService();
+
+  @override
+  void dispose() {
+    // Clean up the temporary file when viewer is closed
+    _cacheService.deleteTrackedFile(widget.filePath);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(fileName),
+        title: Text(widget.fileName),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -28,9 +43,9 @@ class PDFViewerScreen extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Document Info'),
                   content: Text(
-                    'File: $fileName\n'
+                    'File: ${widget.fileName}\n'
                     'Type: PDF\n'
-                    '${mimeType != null ? 'MIME: $mimeType' : ''}',
+                    '${widget.mimeType != null ? 'MIME: ${widget.mimeType}' : ''}',
                   ),
                   actions: [
                     TextButton(
@@ -45,7 +60,7 @@ class PDFViewerScreen extends StatelessWidget {
         ],
       ),
       body: PDFView(
-        filePath: filePath,
+        filePath: widget.filePath,
         enableSwipe: true,
         swipeHorizontal: false,
         autoSpacing: true,

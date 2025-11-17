@@ -156,6 +156,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _clearCache() async {
+    final viewModel = context.read<SettingsViewModel>();
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Cache?'),
+        content: const Text(
+          'This will delete all temporary decrypted files. This is recommended for security.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await viewModel.clearCache();
+      if (mounted) {
+        if (success && viewModel.successMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(viewModel.successMessage!),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (viewModel.hasError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(viewModel.error!.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<SettingsViewModel>();
@@ -295,6 +341,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: Text(viewModel.isBusy ? 'Syncing...' : 'Sync All Documents'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+            ),
+          ),
+
+          // Cache Management Section
+          const Divider(),
+          ListTile(
+            title: const Text('Cache Management'),
+            subtitle: const Text('Manage temporary decrypted files'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.storage, color: Colors.orange),
+            title: const Text('Cache Size'),
+            subtitle: Text(viewModel.cacheSize),
+            trailing: ElevatedButton.icon(
+              onPressed: !viewModel.isBusy ? _clearCache : null,
+              icon: const Icon(Icons.delete_sweep, size: 20),
+              label: const Text('Clear Cache'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[400],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Card(
+              color: Colors.orange[50],
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: const [
+                    Icon(Icons.security, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'For security, cache is automatically cleared when you lock the app',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

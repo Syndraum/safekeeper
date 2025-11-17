@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'encryption_service.dart';
+import 'cache_service.dart';
 
 /// Service for managing audio playback with support for encrypted files
 class AudioPlayerService {
@@ -14,6 +15,7 @@ class AudioPlayerService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   final EncryptionService _encryptionService = EncryptionService();
+  final CacheService _cacheService = CacheService();
 
   String? _decryptedTempPath;
 
@@ -105,6 +107,9 @@ class AudioPlayerService {
       final tempFile = File(tempPath);
       await tempFile.writeAsBytes(decryptedData);
 
+      // Track the temporary file for cleanup
+      _cacheService.trackFile(tempPath);
+
       return tempPath;
     } catch (e) {
       print('Error preparing encrypted file: $e');
@@ -182,10 +187,7 @@ class AudioPlayerService {
 
       // Clean up temporary decrypted file
       if (_decryptedTempPath != null) {
-        final tempFile = File(_decryptedTempPath!);
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
+        await _cacheService.deleteTrackedFile(_decryptedTempPath!);
         _decryptedTempPath = null;
       }
     } catch (e) {

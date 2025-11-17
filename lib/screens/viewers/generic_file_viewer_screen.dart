@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/file_type_detector.dart';
+import '../../services/cache_service.dart';
 
 /// Generic File Viewer for non-PDF files
-class GenericFileViewerScreen extends StatelessWidget {
+class GenericFileViewerScreen extends StatefulWidget {
   final String filePath;
   final String fileName;
   final FileTypeCategory fileType;
@@ -17,14 +18,28 @@ class GenericFileViewerScreen extends StatelessWidget {
   });
 
   @override
+  State<GenericFileViewerScreen> createState() => _GenericFileViewerScreenState();
+}
+
+class _GenericFileViewerScreenState extends State<GenericFileViewerScreen> {
+  final CacheService _cacheService = CacheService();
+
+  @override
+  void dispose() {
+    // Clean up the temporary file when viewer is closed
+    _cacheService.deleteTrackedFile(widget.filePath);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    print('file path: $filePath');
-    print('File name: $fileName');
-    print('File type: ${fileType.name}');
-    print('MIME type: $mimeType');
+    print('file path: ${widget.filePath}');
+    print('File name: ${widget.fileName}');
+    print('File type: ${widget.fileType.name}');
+    print('MIME type: ${widget.mimeType}');
 
     return Scaffold(
-      appBar: AppBar(title: Text(fileName)),
+      appBar: AppBar(title: Text(widget.fileName)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -32,25 +47,25 @@ class GenericFileViewerScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _getFileIcon(fileType),
+                _getFileIcon(widget.fileType),
                 size: 100,
                 color: Theme.of(context).primaryColor,
               ),
               const SizedBox(height: 20),
               Text(
-                fileName,
+                widget.fileName,
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               Text(
-                'File Type: ${_getFileTypeLabel(fileType)}',
+                'File Type: ${_getFileTypeLabel(widget.fileType)}',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-              if (mimeType != null) ...[
+              if (widget.mimeType != null) ...[
                 const SizedBox(height: 5),
                 Text(
-                  'MIME: $mimeType',
+                  'MIME: ${widget.mimeType}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -68,7 +83,7 @@ class GenericFileViewerScreen extends StatelessWidget {
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('File Location'),
-                      content: SelectableText(filePath),
+                      content: SelectableText(widget.filePath),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),

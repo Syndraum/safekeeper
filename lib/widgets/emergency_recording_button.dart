@@ -213,10 +213,9 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
             ),
           ),
 
-        // Bottom button (always visible)
+        // Bottom right button (always visible)
         Positioned(
-          left: 0,
-          right: 0,
+          right: 24,
           bottom: 24 + MediaQuery.of(context).padding.bottom,
           child: AnimatedBuilder(
             animation: _pulseAnimation,

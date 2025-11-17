@@ -50,14 +50,28 @@ class _UploadScreenState extends State<UploadScreen> {
   Future<void> _pickAndUploadFile() async {
     final viewModel = context.read<UploadViewModel>();
     
-    // Show rename dialog first to get the file name
-    String? fileName = await _showRenameDialog('document');
-    if (fileName == null) return;
-
-    final result = await viewModel.pickAndUploadFile(fileName);
+    // First, let user pick the file - this will show the file picker
+    // We pass a temporary name, but will rename after selection
+    final result = await viewModel.pickAndUploadFile('temp_document');
     
-    if (mounted) {
-      if (result != null) {
+    if (result == null) {
+      // User cancelled or error occurred
+      if (mounted && viewModel.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error!.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // File was selected, now show rename dialog
+    String? newName = await _showRenameDialog(result.fileName);
+    if (newName == null || newName == result.fileName) {
+      // User cancelled rename or kept same name, show success with original name
+      if (mounted) {
         String message = 'Document uploaded and secured with hybrid encryption!\n'
             'Detected type: ${result.fileType}';
         
@@ -71,10 +85,32 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
-      } else if (viewModel.hasError) {
+      }
+      return;
+    }
+    
+    // Rename the document
+    final renameSuccess = await viewModel.renameDocument(result.documentId, newName);
+    
+    if (mounted) {
+      if (renameSuccess) {
+        String message = 'Document uploaded and renamed to "$newName"!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(viewModel.error!.message),
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error?.message ?? 'Failed to rename document'),
             backgroundColor: Colors.red,
           ),
         );
@@ -85,15 +121,30 @@ class _UploadScreenState extends State<UploadScreen> {
   Future<void> _takePictureAndUpload() async {
     final viewModel = context.read<UploadViewModel>();
     
-    // Generate default name and show rename dialog
+    // Generate default name for the photo
     String defaultName = viewModel.generatePhotoName();
-    String? fileName = await _showRenameDialog(defaultName);
-    if (fileName == null) return;
-
-    final result = await viewModel.takePictureAndUpload(fileName);
     
-    if (mounted) {
-      if (result != null) {
+    // Take picture first
+    final result = await viewModel.takePictureAndUpload(defaultName);
+    
+    if (result == null) {
+      // User cancelled or error occurred
+      if (mounted && viewModel.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error!.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Photo was taken, now show rename dialog
+    String? newName = await _showRenameDialog(result.fileName);
+    if (newName == null || newName == result.fileName) {
+      // User cancelled rename or kept same name
+      if (mounted) {
         String message = 'Photo uploaded and secured!\n'
             'Detected type: ${result.fileType}';
         
@@ -107,10 +158,32 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
-      } else if (viewModel.hasError) {
+      }
+      return;
+    }
+    
+    // Rename the document
+    final renameSuccess = await viewModel.renameDocument(result.documentId, newName);
+    
+    if (mounted) {
+      if (renameSuccess) {
+        String message = 'Photo uploaded and renamed to "$newName"!\n'
+            'Detected type: ${result.fileType}';
+        
+        if (result.backupStarted) {
+          message += '\nBackup started...';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(viewModel.error!.message),
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error?.message ?? 'Failed to rename document'),
             backgroundColor: Colors.red,
           ),
         );

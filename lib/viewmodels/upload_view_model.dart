@@ -147,6 +147,18 @@ class UploadViewModel extends BaseViewModel {
   String generateVocalMemoName() {
     return 'vocal_memo_${DateTime.now().millisecondsSinceEpoch}.m4a';
   }
+
+  /// Rename a document after upload
+  Future<bool> renameDocument(int documentId, String newName) async {
+    final result = await runBusyFuture<bool>(
+      () async {
+        await _documentService.updateDocumentName(documentId, newName);
+        return true;
+      },
+      errorMessage: 'Failed to rename document',
+    );
+    return result ?? false;
+  }
 }
 
 /// Result of an upload operation

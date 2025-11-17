@@ -136,9 +136,41 @@ class DocumentService {
 
   Future<void> updateDocumentName(int id, String newName) async {
     final db = await database;
+    
+    // Get the current document to retrieve the old path
+    final doc = await getDocument(id);
+    if (doc == null) {
+      throw Exception('Document not found');
+    }
+    
+    final oldPath = doc['path'] as String;
+    final oldFile = File(oldPath);
+    
+    // Generate new path with the new name (keep the .enc extension)
+    final directory = oldFile.parent.path;
+    final newPath = '$directory/$newName.enc';
+    final newFile = File(newPath);
+    
+    // Rename the physical file if it exists
+    if (await oldFile.exists()) {
+      try {
+        await oldFile.rename(newPath);
+        print('Renamed file from $oldPath to $newPath');
+      } catch (e) {
+        print('Error renaming file: $e');
+        throw Exception('Failed to rename physical file: $e');
+      }
+    } else {
+      print('Warning: Old file not found at $oldPath');
+    }
+    
+    // Update the database with new name and path
     await db.update(
       'documents',
-      {'name': newName},
+      {
+        'name': newName,
+        'path': newPath,
+      },
       where: 'id = ?',
       whereArgs: [id],
     );

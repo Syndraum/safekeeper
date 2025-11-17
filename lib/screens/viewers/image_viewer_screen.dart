@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../services/cache_service.dart';
 
 /// Image Viewer Screen for image files
-class ImageViewerScreen extends StatelessWidget {
+class ImageViewerScreen extends StatefulWidget {
   final String filePath;
   final String fileName;
   final String? mimeType;
@@ -15,10 +16,24 @@ class ImageViewerScreen extends StatelessWidget {
   });
 
   @override
+  State<ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<ImageViewerScreen> {
+  final CacheService _cacheService = CacheService();
+
+  @override
+  void dispose() {
+    // Clean up the temporary file when viewer is closed
+    _cacheService.deleteTrackedFile(widget.filePath);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(fileName),
+        title: Text(widget.fileName),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -28,9 +43,9 @@ class ImageViewerScreen extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Image Info'),
                   content: Text(
-                    'File: $fileName\n'
+                    'File: ${widget.fileName}\n'
                     'Type: Image\n'
-                    '${mimeType != null ? 'MIME: $mimeType' : ''}',
+                    '${widget.mimeType != null ? 'MIME: ${widget.mimeType}' : ''}',
                   ),
                   actions: [
                     TextButton(
@@ -49,7 +64,7 @@ class ImageViewerScreen extends StatelessWidget {
           minScale: 0.5,
           maxScale: 4.0,
           child: Image.file(
-            File(filePath),
+            File(widget.filePath),
             errorBuilder: (context, error, stackTrace) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -10,6 +10,7 @@ import 'services/auth_service.dart';
 import 'services/settings_service.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/document_service.dart';
+import 'services/cache_service.dart';
 import 'services/cloud_providers/google_drive_provider.dart';
 import 'services/cloud_providers/dropbox_provider.dart';
 import 'viewmodels/auth_view_model.dart';
@@ -34,6 +35,9 @@ void main() async {
   final backupService = CloudBackupService();
   await backupService.initialize();
 
+  final cacheService = CacheService();
+  await cacheService.initialize();
+
   final authService = AuthService();
   final documentService = DocumentService();
   final googleDriveProvider = GoogleDriveProvider();
@@ -50,6 +54,7 @@ void main() async {
       documentService: documentService,
       settingsService: settingsService,
       backupService: backupService,
+      cacheService: cacheService,
       googleDriveProvider: googleDriveProvider,
       dropboxProvider: dropboxProvider,
     ),
@@ -63,6 +68,7 @@ class MyApp extends StatelessWidget {
   final DocumentService documentService;
   final SettingsService settingsService;
   final CloudBackupService backupService;
+  final CacheService cacheService;
   final GoogleDriveProvider googleDriveProvider;
   final DropboxProvider dropboxProvider;
 
@@ -74,6 +80,7 @@ class MyApp extends StatelessWidget {
     required this.documentService,
     required this.settingsService,
     required this.backupService,
+    required this.cacheService,
     required this.googleDriveProvider,
     required this.dropboxProvider,
   });
@@ -88,6 +95,7 @@ class MyApp extends StatelessWidget {
         Provider<DocumentService>.value(value: documentService),
         Provider<SettingsService>.value(value: settingsService),
         Provider<CloudBackupService>.value(value: backupService),
+        Provider<CacheService>.value(value: cacheService),
         Provider<GoogleDriveProvider>.value(value: googleDriveProvider),
         Provider<DropboxProvider>.value(value: dropboxProvider),
 
@@ -100,6 +108,7 @@ class MyApp extends StatelessWidget {
             documentService: documentService,
             encryptionService: encryptionService,
             backupService: backupService,
+            cacheService: cacheService,
           ),
         ),
         ChangeNotifierProvider(
@@ -114,6 +123,7 @@ class MyApp extends StatelessWidget {
           create: (_) => SettingsViewModel(
             settingsService: settingsService,
             backupService: backupService,
+            cacheService: cacheService,
             googleDriveProvider: googleDriveProvider,
             dropboxProvider: dropboxProvider,
           ),
@@ -163,10 +173,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  void _logout() {
+  Future<void> _logout() async {
     final viewModel = context.read<HomeViewModel>();
-    viewModel.logout();
-    Navigator.of(context).pushReplacementNamed('/unlock');
+    await viewModel.logout();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/unlock');
+    }
   }
 
   @override

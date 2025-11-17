@@ -6,6 +6,7 @@ import '../core/base_view_model.dart';
 import '../services/document_service.dart';
 import '../services/encryption_service.dart';
 import '../services/cloud_backup_service.dart';
+import '../services/cache_service.dart';
 import '../services/file_type_detector.dart';
 import '../models/backup_status.dart' show DocumentBackupStatus;
 
@@ -13,6 +14,7 @@ class DocumentListViewModel extends BaseViewModel {
   final DocumentService _documentService;
   final EncryptionService _encryptionService;
   final CloudBackupService _backupService;
+  final CacheService _cacheService;
 
   List<Map<String, dynamic>> _documents = [];
   List<Map<String, dynamic>> _filteredDocuments = [];
@@ -22,9 +24,11 @@ class DocumentListViewModel extends BaseViewModel {
     required DocumentService documentService,
     required EncryptionService encryptionService,
     required CloudBackupService backupService,
+    required CacheService cacheService,
   })  : _documentService = documentService,
         _encryptionService = encryptionService,
-        _backupService = backupService;
+        _backupService = backupService,
+        _cacheService = cacheService;
 
   // Getters
   List<Map<String, dynamic>> get documents => _filteredDocuments;
@@ -164,6 +168,9 @@ class DocumentListViewModel extends BaseViewModel {
         String tempPath = '${tempDir.path}/$name';
         File tempFile = File(tempPath);
         await tempFile.writeAsBytes(decryptedBytes);
+
+        // Track the temporary file for cleanup
+        _cacheService.trackFile(tempPath);
 
         return DecryptedDocumentResult(
           tempPath: tempPath,

@@ -35,7 +35,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
     final success = await viewModel.setupPassword(password);
 
     if (mounted) {
-      if (success) {
+      if (success || viewModel.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.successMessage ?? 'Mot de passe configuré avec succès !'),

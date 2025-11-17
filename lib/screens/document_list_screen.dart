@@ -1,14 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:path_provider/path_provider.dart';
-import '../services/document_service.dart';
-import '../services/encryption_service.dart';
+import '../viewmodels/document_list_view_model.dart';
 import '../services/file_type_detector.dart';
-import '../services/cloud_backup_service.dart';
-import '../models/backup_status.dart';
 import '../widgets/audio_player_widget.dart';
 
 class DocumentListScreen extends StatefulWidget {
@@ -19,19 +14,16 @@ class DocumentListScreen extends StatefulWidget {
 }
 
 class _DocumentListScreenState extends State<DocumentListScreen> {
-  final DocumentService _documentService = DocumentService();
-  final _encryptionService = EncryptionService();
-  final _backupService = CloudBackupService();
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _documents = [];
-  List<Map<String, dynamic>> _filteredDocuments = [];
-  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadDocuments();
     _searchController.addListener(_onSearchChanged);
+    // Initialize ViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DocumentListViewModel>().initialize();
+    });
   }
 
   @override
@@ -42,33 +34,12 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   }
 
   void _onSearchChanged() {
-    setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
-      _filterDocuments();
-    });
-  }
-
-  void _filterDocuments() {
-    if (_searchQuery.isEmpty) {
-      _filteredDocuments = List.from(_documents);
-    } else {
-      _filteredDocuments = _documents.where((doc) {
-        final name = doc['name'].toString().toLowerCase();
-        return name.contains(_searchQuery);
-      }).toList();
-    }
-  }
-
-  Future<void> _loadDocuments() async {
-    final documents = await _documentService.getDocuments();
-    setState(() {
-      _documents = documents;
-      _filterDocuments();
-    });
+    context.read<DocumentListViewModel>().updateSearchQuery(_searchController.text);
   }
 
   Future<void> _showRenameDialog(int id, String currentName) async {
     final TextEditingController controller = TextEditingController(text: currentName);
+    final viewModel = context.read<DocumentListViewModel>();
     
     final newName = await showDialog<String>(
       context: context,
@@ -101,13 +72,19 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     );
 
     if (newName != null && newName != currentName) {
-      await _documentService.updateDocumentName(id, newName);
-      _loadDocuments();
-      if (mounted) {
+      final success = await viewModel.renameDocument(id, newName);
+      if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Document renamed successfully'),
+          SnackBar(
+            content: Text(viewModel.successMessage ?? 'Document renamed successfully'),
             backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted && viewModel.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(viewModel.error!.message),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -115,8 +92,24 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   }
 
   Future<void> _deleteDocument(int id) async {
-    await _documentService.deleteDocument(id);
-    _loadDocuments(); // Reload the list after deletion
+    final viewModel = context.read<DocumentListViewModel>();
+    final success = await viewModel.deleteDocument(id);
+    
+    if (mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.successMessage ?? 'Document deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (mounted && viewModel.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.error!.message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _openDocument(
@@ -124,175 +117,103 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     String encryptedPath,
     String name,
   ) async {
-    try {
-      // Get document metadata from database
-      final doc = await _documentService.getDocument(documentId);
-      if (doc == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Document not found in database')),
-          );
-        }
-        return;
-      }
-
-      // Get encrypted key, IV, and HMAC from database
-      String encryptedKeyBase64 = doc['encrypted_key'];
-      String ivBase64 = doc['iv'];
-      String? hmacBase64 = doc['hmac'];
-
-      // Convert from base64
-      Uint8List encryptedKey = base64.decode(encryptedKeyBase64);
-      Uint8List iv = base64.decode(ivBase64);
-      Uint8List? hmac = hmacBase64 != null ? base64.decode(hmacBase64) : null;
-
-      // Read encrypted file
-      File encryptedFile = File(encryptedPath);
-      Uint8List encryptedData = await encryptedFile.readAsBytes();
-
-      // Decrypt using hybrid decryption
-      Uint8List decryptedBytes = await _encryptionService.decryptFile(
-        encryptedData,
-        encryptedKey,
-        iv,
-        hmac,
-      );
-
-      // Get stored file type from database, or detect from content if not available
-      String? fileTypeStr = doc['file_type'];
-      String? mimeType = doc['mime_type'];
-      
-      FileTypeCategory fileType;
-      if (fileTypeStr != null && fileTypeStr.isNotEmpty) {
-        // Use stored file type
-        try {
-          fileType = FileTypeCategory.values.firstWhere(
-            (e) => e.name == fileTypeStr,
-            orElse: () => FileTypeCategory.unknown,
-          );
-        } catch (e) {
-          fileType = FileTypeCategory.unknown;
-        }
-      } else {
-        // Fallback: detect from decrypted content for old documents
-        final detectedInfo = FileTypeDetector.detectFromBytes(
-          decryptedBytes,
-          fileName: name,
-        );
-        fileType = detectedInfo.category;
-        mimeType = detectedInfo.mimeType;
-        print('File type not in database, detected: ${fileType.name}, MIME: $mimeType');
-      }
-
-      // Save the decrypted file temporarily for viewing
-      Directory tempDir = await getTemporaryDirectory();
-      String tempPath = '${tempDir.path}/$name';
-      File tempFile = File(tempPath);
-      await tempFile.writeAsBytes(decryptedBytes);
-
-      // Navigate to a viewer screen based on detected file type
-      if (mounted) {
-        switch (fileType) {
-          case FileTypeCategory.pdf:
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PDFViewerScreen(
-                  filePath: tempPath,
-                  fileName: name,
-                  mimeType: mimeType,
-                ),
-              ),
-            );
-            break;
-          case FileTypeCategory.image:
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ImageViewerScreen(
-                  filePath: tempPath,
-                  fileName: name,
-                  mimeType: mimeType,
-                ),
-              ),
-            );
-            break;
-          case FileTypeCategory.audio:
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AudioViewerScreen(
-                  encryptedPath: encryptedPath,
-                  encryptedKey: encryptedKeyBase64,
-                  iv: ivBase64,
-                  hmac: hmacBase64,
-                  fileName: name,
-                  mimeType: mimeType,
-                ),
-              ),
-            );
-            break;
-          default:
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => GenericFileViewerScreen(
-                  filePath: tempPath,
-                  fileName: name,
-                  fileType: fileType,
-                  mimeType: mimeType,
-                ),
-              ),
-            );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+    final viewModel = context.read<DocumentListViewModel>();
+    final result = await viewModel.openDocument(documentId, encryptedPath, name);
+    
+    if (result == null) {
+      if (mounted && viewModel.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error opening document: $e'),
+            content: Text(viewModel.error!.message),
             backgroundColor: Colors.red,
           ),
         );
+      }
+      return;
+    }
+
+    // Navigate to appropriate viewer based on file type
+    if (mounted) {
+      switch (result.fileType) {
+        case FileTypeCategory.pdf:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PDFViewerScreen(
+                filePath: result.tempPath,
+                fileName: result.fileName,
+                mimeType: result.mimeType,
+              ),
+            ),
+          );
+          break;
+        case FileTypeCategory.image:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImageViewerScreen(
+                filePath: result.tempPath,
+                fileName: result.fileName,
+                mimeType: result.mimeType,
+              ),
+            ),
+          );
+          break;
+        case FileTypeCategory.audio:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AudioViewerScreen(
+                encryptedPath: result.encryptedPath,
+                encryptedKey: result.encryptedKey,
+                iv: result.iv,
+                hmac: result.hmac,
+                fileName: result.fileName,
+                mimeType: result.mimeType,
+              ),
+            ),
+          );
+          break;
+        default:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GenericFileViewerScreen(
+                filePath: result.tempPath,
+                fileName: result.fileName,
+                fileType: result.fileType,
+                mimeType: result.mimeType,
+              ),
+            ),
+          );
       }
     }
   }
 
   Future<void> _syncAllDocuments() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      await _backupService.syncAllDocuments();
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All documents synced successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sync failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    final viewModel = context.read<DocumentListViewModel>();
+    final success = await viewModel.syncAllDocuments();
+    
+    if (mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.successMessage ?? 'All documents synced successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (mounted && viewModel.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.error!.message),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   Widget _buildBackupStatusIcon(int documentId) {
-    final status = _backupService.getBackupStatus(documentId);
+    final viewModel = context.watch<DocumentListViewModel>();
+    final status = viewModel.getBackupStatus(documentId);
     
     if (status == null || !status.isBackedUp) {
       return const SizedBox.shrink();
@@ -324,6 +245,8 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<DocumentListViewModel>();
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Document List'),
@@ -348,7 +271,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               decoration: InputDecoration(
                 hintText: 'Search documents...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
+                suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
@@ -367,26 +290,28 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           ),
         ),
       ),
-      body: _documents.isEmpty
-          ? const Center(child: Text('No documents uploaded yet.'))
-          : _filteredDocuments.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No documents found for "$_searchQuery"',
-                        style: const TextStyle(color: Colors.grey),
+      body: viewModel.isBusy
+          ? const Center(child: CircularProgressIndicator())
+          : !viewModel.hasDocuments
+              ? const Center(child: Text('No documents uploaded yet.'))
+              : !viewModel.hasFilteredDocuments
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No documents found for "${viewModel.searchQuery}"',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _filteredDocuments.length,
-                  itemBuilder: (context, index) {
-                    final doc = _filteredDocuments[index];
+                    )
+                  : ListView.builder(
+                      itemCount: viewModel.documents.length,
+                      itemBuilder: (context, index) {
+                        final doc = viewModel.documents[index];
                     final uploadDate = doc['upload_date'] != null
                         ? DateTime.parse(doc['upload_date'])
                         : null;
@@ -404,15 +329,15 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                           _buildBackupStatusIcon(doc['id']),
                         ],
                       ),
-                      subtitle: uploadDate != null
-                          ? Text(
-                              _formatDate(uploadDate),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            )
-                          : null,
+                        subtitle: uploadDate != null
+                            ? Text(
+                                viewModel.formatDate(uploadDate),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            : null,
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -431,34 +356,12 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                           ),
                         ],
                       ),
-                      onTap: () =>
-                          _openDocument(doc['id'], doc['path'], doc['name']),
-                    );
-                  },
-                ),
+                        onTap: () =>
+                            _openDocument(doc['id'], doc['path'], doc['name']),
+                      );
+                    },
+                  ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        if (difference.inMinutes == 0) {
-          return 'Just now';
-        }
-        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
-      }
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      // Format as date for older files
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 
   IconData _getFileTypeIcon(String? fileType) {

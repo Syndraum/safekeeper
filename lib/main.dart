@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/upload_screen.dart';
 import 'screens/document_list_screen.dart';
 import 'screens/password_setup_screen.dart';
@@ -8,6 +9,14 @@ import 'services/encryption_service.dart';
 import 'services/auth_service.dart';
 import 'services/settings_service.dart';
 import 'services/cloud_backup_service.dart';
+import 'services/document_service.dart';
+import 'services/cloud_providers/google_drive_provider.dart';
+import 'services/cloud_providers/dropbox_provider.dart';
+import 'viewmodels/auth_view_model.dart';
+import 'viewmodels/document_list_view_model.dart';
+import 'viewmodels/upload_view_model.dart';
+import 'viewmodels/settings_view_model.dart';
+import 'viewmodels/home_view_model.dart';
 import 'widgets/emergency_recording_wrapper.dart';
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -15,33 +24,105 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize encryption service (generates RSA keys if not present)
+  // Initialize services
   final encryptionService = EncryptionService();
   await encryptionService.initialize();
 
-  // Initialize settings service
   final settingsService = SettingsService();
   await settingsService.initialize();
 
-  // Initialize cloud backup service
   final backupService = CloudBackupService();
   await backupService.initialize();
 
-  // Check if password is set
   final authService = AuthService();
+  final documentService = DocumentService();
+  final googleDriveProvider = GoogleDriveProvider();
+  final dropboxProvider = DropboxProvider();
+
+  // Check if password is set
   final isPasswordSet = await authService.isPasswordSet();
 
-  runApp(MyApp(isPasswordSet: isPasswordSet));
+  runApp(
+    MyApp(
+      isPasswordSet: isPasswordSet,
+      authService: authService,
+      encryptionService: encryptionService,
+      documentService: documentService,
+      settingsService: settingsService,
+      backupService: backupService,
+      googleDriveProvider: googleDriveProvider,
+      dropboxProvider: dropboxProvider,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final bool isPasswordSet;
+  final AuthService authService;
+  final EncryptionService encryptionService;
+  final DocumentService documentService;
+  final SettingsService settingsService;
+  final CloudBackupService backupService;
+  final GoogleDriveProvider googleDriveProvider;
+  final DropboxProvider dropboxProvider;
 
-  const MyApp({super.key, required this.isPasswordSet});
+  const MyApp({
+    super.key,
+    required this.isPasswordSet,
+    required this.authService,
+    required this.encryptionService,
+    required this.documentService,
+    required this.settingsService,
+    required this.backupService,
+    required this.googleDriveProvider,
+    required this.dropboxProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MultiProvider(
+      providers: [
+        // Services
+        Provider<AuthService>.value(value: authService),
+        Provider<EncryptionService>.value(value: encryptionService),
+        Provider<DocumentService>.value(value: documentService),
+        Provider<SettingsService>.value(value: settingsService),
+        Provider<CloudBackupService>.value(value: backupService),
+        Provider<GoogleDriveProvider>.value(value: googleDriveProvider),
+        Provider<DropboxProvider>.value(value: dropboxProvider),
+
+        // ViewModels
+        ChangeNotifierProvider(
+          create: (_) => AuthViewModel(authService: authService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DocumentListViewModel(
+            documentService: documentService,
+            encryptionService: encryptionService,
+            backupService: backupService,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UploadViewModel(
+            encryptionService: encryptionService,
+            documentService: documentService,
+            backupService: backupService,
+            settingsService: settingsService,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SettingsViewModel(
+            settingsService: settingsService,
+            backupService: backupService,
+            googleDriveProvider: googleDriveProvider,
+            dropboxProvider: dropboxProvider,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HomeViewModel(authService: authService),
+        ),
+      ],
+      child: MaterialApp(
       title: 'SafeKeeper - Gestion de Documents Sécurisés',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -49,24 +130,25 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // Wrap the entire app with emergency recording functionality
-      builder: (context, child) {
-        return EmergencyRecordingWrapper(
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-      // Définit les routes pour naviguer entre écrans
-      routes: {
-        '/': (context) =>
-            const MyHomePage(title: 'SafeKeeper - Documents Sécurisés'),
-        '/upload': (context) => const UploadScreen(),
-        '/list': (context) => const DocumentListScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/password-setup': (context) => const PasswordSetupScreen(),
-        '/unlock': (context) => const UnlockScreen(),
-      },
-      // Route initiale basée sur l'état du mot de passe
-      initialRoute: isPasswordSet ? '/unlock' : '/password-setup',
+        // Wrap the entire app with emergency recording functionality
+        builder: (context, child) {
+          return EmergencyRecordingWrapper(
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        // Définit les routes pour naviguer entre écrans
+        routes: {
+          '/': (context) =>
+              const MyHomePage(title: 'SafeKeeper - Documents Sécurisés'),
+          '/upload': (context) => const UploadScreen(),
+          '/list': (context) => const DocumentListScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          '/password-setup': (context) => const PasswordSetupScreen(),
+          '/unlock': (context) => const UnlockScreen(),
+        },
+        // Route initiale basée sur l'état du mot de passe
+        initialRoute: isPasswordSet ? '/unlock' : '/password-setup',
+      ),
     );
   }
 }
@@ -81,10 +163,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _authService = AuthService();
-
   void _logout() {
-    _authService.logout();
+    final viewModel = context.read<HomeViewModel>();
+    viewModel.logout();
     Navigator.of(context).pushReplacementNamed('/unlock');
   }
 

@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
 import '../services/file_type_detector.dart';
+import '../services/cloud_backup_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/vocal_memo_recorder.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -20,6 +22,8 @@ class _UploadScreenState extends State<UploadScreen> {
   final _imagePicker = ImagePicker();
   final _encryptionService = EncryptionService();
   final _documentService = DocumentService();
+  final _backupService = CloudBackupService();
+  final _settingsService = SettingsService();
 
   // Show dialog to rename file before upload
   Future<String?> _showRenameDialog(String originalName) async {
@@ -90,6 +94,40 @@ class _UploadScreenState extends State<UploadScreen> {
         mimeType: fileTypeInfo.mimeType,
         fileType: fileTypeInfo.category.name,
       );
+
+      // Get the document ID of the newly added document
+      final documents = await _documentService.getDocuments();
+      final newDocument = documents.lastWhere(
+        (doc) => doc['name'] == fileName && doc['path'] == encryptedPath,
+      );
+      final documentId = newDocument['id'] as int;
+
+      // Trigger cloud backup if enabled and auto-backup is on
+      if (_settingsService.isBackupEnabled() && 
+          _settingsService.isAutoBackupEnabled()) {
+        // Start backup in background (don't await)
+        _backupService.backupDocument(documentId, encryptedPath).then((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Document backed up to cloud!'),
+                backgroundColor: Colors.blue,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Cloud backup failed: $e'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

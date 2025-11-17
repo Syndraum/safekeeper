@@ -6,6 +6,10 @@
     <!-- Permission pour l'enregistrement audio -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     
+    <!-- Permission pour l'accès Internet (cloud backup) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    
     <application
         android:label="safekeeper"
         android:name="${applicationName}"
@@ -30,6 +34,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            
+            <!-- OAuth redirect for cloud providers -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="safekeeper"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

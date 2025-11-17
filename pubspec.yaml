@@ -66,6 +66,13 @@ dependencies:
 
   audioplayers: ^6.1.0  # For audio playback
 
+  # Cloud backup dependencies
+  googleapis: ^13.2.0  # Google Drive API
+  googleapis_auth: ^1.6.0  # Google OAuth
+  shared_preferences: ^2.2.3  # Settings storage
+  http: ^1.2.0  # HTTP client for Dropbox API
+  url_launcher: ^6.3.0  # OAuth flows
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

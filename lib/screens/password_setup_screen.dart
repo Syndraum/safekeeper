@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/auth_view_model.dart';
 
-/// Écran de configuration initiale du mot de passe
+/// Initial password setup screen
 class PasswordSetupScreen extends StatefulWidget {
   const PasswordSetupScreen({super.key});
 
@@ -38,7 +38,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
       if (success || viewModel.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(viewModel.successMessage ?? 'Mot de passe configuré avec succès !'),
+          content: Text(viewModel.successMessage ?? 'Password configured successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -61,7 +61,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuration du mot de passe'),
+        title: const Text('Password Setup'),
         automaticallyImplyLeading: false,
       ),
       body: Center(
@@ -73,7 +73,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Icône de sécurité
+                // Security icon
                 Icon(
                   Icons.lock_outline,
                   size: 80,
@@ -81,9 +81,9 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Titre
+                // Title
                 Text(
-                  'Protégez vos documents',
+                  'Protect Your Documents',
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
@@ -91,7 +91,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
 
                 // Description
                 Text(
-                  'Créez un mot de passe pour sécuriser l\'accès à vos documents chiffrés',
+                  'Create a password to secure access to your encrypted documents',
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
@@ -99,13 +99,13 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Champ mot de passe
+                // Password field
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
-                    hintText: 'Minimum 6 caractères',
+                    labelText: 'Password',
+                    hintText: 'Minimum 6 characters',
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -123,23 +123,23 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un mot de passe';
+                      return 'Please enter a password';
                     }
                     if (value.length < 6) {
-                      return 'Le mot de passe doit contenir au moins 6 caractères';
+                      return 'Password must contain at least 6 characters';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Champ confirmation
+                // Confirmation field
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: !_isConfirmPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    hintText: 'Retapez votre mot de passe',
+                    labelText: 'Confirm Password',
+                    hintText: 'Re-enter your password',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -158,17 +158,17 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez confirmer votre mot de passe';
+                      return 'Please confirm your password';
                     }
                     if (value != _passwordController.text) {
-                      return 'Les mots de passe ne correspondent pas';
+                      return 'Passwords do not match';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
-                // Conseils de sécurité
+                // Security tips
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -188,7 +188,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Conseils de sécurité',
+                            'Security Tips',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue[700],
@@ -197,22 +197,22 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      _buildSecurityTip('Utilisez au moins 8 caractères'),
+                      _buildSecurityTip('Use at least 8 characters'),
                       _buildSecurityTip(
-                        'Mélangez lettres, chiffres et symboles',
+                        'Mix letters, numbers and symbols',
                       ),
                       _buildSecurityTip(
-                        'Ne partagez jamais votre mot de passe',
+                        'Never share your password',
                       ),
                       _buildSecurityTip(
-                        'Mémorisez-le bien, il ne peut pas être récupéré',
+                        'Remember it well, it cannot be recovered',
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // Bouton de configuration
+                // Setup button
                 ElevatedButton(
                   onPressed: viewModel.isBusy ? null : _setupPassword,
                   style: ElevatedButton.styleFrom(
@@ -233,7 +233,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
                           ),
                         )
                       : const Text(
-                          'Créer le mot de passe',
+                          'Create Password',
                           style: TextStyle(fontSize: 16),
                         ),
                 ),

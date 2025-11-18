@@ -201,14 +201,14 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
       onRecordingCallback: _setRecordingCallback,
       child: MaterialApp(
         scaffoldMessengerKey: _scaffoldMessengerKey,
-        title: 'SafeKeeper - Gestion de Documents Sécurisés',
+        title: 'SafeKeeper - Secure Document Management',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromARGB(255, 36, 77, 124),
           ),
           useMaterial3: true,
         ),
-        // Définit les routes pour naviguer entre écrans
+        // Define routes for navigating between screens
         routes: {
           '/': (context) => MainNavigationScreen(
                 onPanicPressed: _panicCallback,
@@ -218,7 +218,7 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
           '/permissions-onboarding': (context) => const PermissionsOnboardingScreen(),
           '/unlock': (context) => const UnlockScreen(),
         },
-        // Route initiale basée sur l'état du mot de passe et des permissions
+        // Initial route based on password and permissions status
         initialRoute: _getInitialRoute(),
       ),
     );

@@ -82,13 +82,13 @@ class PermissionService {
   String getPermissionDisplayName(Permission permission) {
     switch (permission) {
       case Permission.camera:
-        return 'Caméra';
+        return 'Camera';
       case Permission.microphone:
         return 'Microphone';
       case Permission.notification:
         return 'Notifications';
       default:
-        return 'Permission inconnue';
+        return 'Unknown Permission';
     }
   }
 
@@ -96,13 +96,13 @@ class PermissionService {
   String getPermissionDescription(Permission permission) {
     switch (permission) {
       case Permission.camera:
-        return 'Pour scanner et photographier vos documents importants, ainsi que pour enregistrer des vidéos d\'urgence.';
+        return 'To scan and photograph your important documents, as well as to record emergency videos.';
       case Permission.microphone:
-        return 'Pour enregistrer des messages audio d\'urgence en cas de situation critique.';
+        return 'To record emergency audio messages in critical situations.';
       case Permission.notification:
-        return 'Pour vous alerter des sauvegardes cloud et des mises à jour importantes.';
+        return 'To alert you about cloud backups and important updates.';
       default:
-        return 'Cette permission est nécessaire pour le fonctionnement de l\'application.';
+        return 'This permission is necessary for the app to function.';
     }
   }
 

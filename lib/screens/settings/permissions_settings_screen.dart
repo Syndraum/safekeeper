@@ -55,7 +55,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Permission ${_permissionService.getPermissionDisplayName(permission)} accordée',
+            'Permission ${_permissionService.getPermissionDisplayName(permission)} granted',
           ),
           backgroundColor: Colors.green,
         ),
@@ -67,22 +67,22 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permission refusée'),
+        title: const Text('Permission Denied'),
         content: Text(
-          'La permission ${_permissionService.getPermissionDisplayName(permission)} a été refusée de manière permanente. '
-          'Vous devez l\'activer manuellement dans les paramètres de l\'application.',
+          'The ${_permissionService.getPermissionDisplayName(permission)} permission has been permanently denied. '
+          'You must enable it manually in the app settings.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _permissionService.openSettings();
             },
-            child: const Text('Ouvrir les paramètres'),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
@@ -104,7 +104,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'État actuel: ${_getPermissionStatusText(_permissionStatuses[permission])}',
+              'Current status: ${_getPermissionStatusText(_permissionStatuses[permission])}',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -116,7 +116,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -124,13 +124,13 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
   }
 
   String _getPermissionStatusText(PermissionStatus? status) {
-    if (status == null) return 'Inconnu';
-    if (status.isGranted) return 'Accordée';
-    if (status.isDenied) return 'Refusée';
-    if (status.isPermanentlyDenied) return 'Refusée définitivement';
-    if (status.isRestricted) return 'Restreinte';
-    if (status.isLimited) return 'Limitée';
-    return 'Inconnu';
+    if (status == null) return 'Unknown';
+    if (status.isGranted) return 'Granted';
+    if (status.isDenied) return 'Denied';
+    if (status.isPermanentlyDenied) return 'Permanently Denied';
+    if (status.isRestricted) return 'Restricted';
+    if (status.isLimited) return 'Limited';
+    return 'Unknown';
   }
 
   Color _getPermissionStatusColor(PermissionStatus? status) {
@@ -151,12 +151,12 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Autorisations'),
+        title: const Text('Permissions'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadPermissionStatuses,
-            tooltip: 'Actualiser',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -169,15 +169,15 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                 children: [
                   // Header
                   Text(
-                    'Gérer les autorisations',
+                    'Manage Permissions',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Contrôlez les autorisations accordées à SafeKeeper. '
-                    'Certaines fonctionnalités peuvent ne pas fonctionner sans les autorisations nécessaires.',
+                    'Control the permissions granted to SafeKeeper. '
+                    'Some features may not work without the necessary permissions.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -185,7 +185,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                   const SizedBox(height: 24),
 
                   // Required Permissions Section
-                  _buildSectionHeader('Autorisations requises'),
+                  _buildSectionHeader('Required Permissions'),
                   const SizedBox(height: 8),
                   ..._permissionService
                       .getRequiredPermissions()
@@ -194,7 +194,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                   const SizedBox(height: 24),
 
                   // Optional Permissions Section
-                  _buildSectionHeader('Autorisations optionnelles'),
+                  _buildSectionHeader('Optional Permissions'),
                   const SizedBox(height: 8),
                   ..._permissionService
                       .getOptionalPermissions()
@@ -218,7 +218,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'À propos des autorisations',
+                                'About Permissions',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue[900],
@@ -228,9 +228,9 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '• Les autorisations refusées définitivement doivent être activées manuellement dans les paramètres système\n'
-                            '• Vous pouvez révoquer les autorisations à tout moment\n'
-                            '• SafeKeeper respecte votre vie privée et n\'utilise les autorisations que pour les fonctionnalités décrites',
+                            '• Permanently denied permissions must be enabled manually in system settings\n'
+                            '• You can revoke permissions at any time\n'
+                            '• SafeKeeper respects your privacy and only uses permissions for the described features',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.blue[900],
@@ -248,7 +248,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                   OutlinedButton.icon(
                     onPressed: () => _permissionService.openSettings(),
                     icon: const Icon(Icons.settings),
-                    label: const Text('Ouvrir les paramètres système'),
+                    label: const Text('Open System Settings'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -368,7 +368,7 @@ class _PermissionsSettingsScreenState extends State<PermissionsSettingsScreen> {
                       _requestPermission(permission);
                     }
                   },
-                  tooltip: isPermanentlyDenied ? 'Ouvrir les paramètres' : 'Demander',
+                  tooltip: isPermanentlyDenied ? 'Open Settings' : 'Request',
                 ),
             ],
           ),

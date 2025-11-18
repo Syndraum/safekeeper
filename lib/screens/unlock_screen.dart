@@ -7,7 +7,7 @@ import '../services/cache_service.dart';
 import '../widgets/emergency_button_widget.dart';
 import '../screens/panic_lock_screen.dart';
 
-/// Écran de déverrouillage pour accéder aux documents
+/// Unlock screen to access documents
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key});
 
@@ -81,7 +81,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
       if (path != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Enregistrement d\'urgence sauvegardé'),
+            content: Text('Emergency recording saved'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -89,7 +89,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Échec de la sauvegarde de l\'enregistrement'),
+            content: Text('Failed to save recording'),
             backgroundColor: Colors.red,
           ),
         );
@@ -100,7 +100,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
       if (!hasPermissions && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Autorisations caméra et microphone requises'),
+            content: Text('Camera and microphone permissions required'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -113,7 +113,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Échec du démarrage de l\'enregistrement'),
+            content: Text('Failed to start recording'),
             backgroundColor: Colors.red,
           ),
         );
@@ -125,7 +125,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
     if (_passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez entrer votre mot de passe'),
+          content: Text('Please enter your password'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -138,10 +138,10 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
     if (mounted) {
       if (success) {
-        // Mot de passe correct - naviguer vers l'écran principal
+        // Correct password - navigate to main screen
         Navigator.of(context).pushReplacementNamed('/');
       } else {
-        // Mot de passe incorrect
+        // Incorrect password
         setState(() {
           _failedAttempts++;
         });
@@ -151,7 +151,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
         // Show error from ViewModel or default message
         final errorMessage = viewModel.hasError
             ? viewModel.error!.message
-            : 'Mot de passe incorrect (${_failedAttempts} tentative${_failedAttempts > 1 ? 's' : ''})';
+            : 'Incorrect password (${_failedAttempts} attempt${_failedAttempts > 1 ? 's' : ''})';
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -160,7 +160,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
           ),
         );
 
-        // Ajouter un délai après plusieurs tentatives échouées
+        // Add delay after multiple failed attempts
         if (_failedAttempts >= 3) {
           await Future.delayed(const Duration(seconds: 2));
         }
@@ -194,7 +194,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icône
+                  // Logo/Icon
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -216,7 +216,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Titre
+                  // Title
                   const Text(
                     'SafeKeeper',
                     style: TextStyle(
@@ -227,9 +227,9 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Sous-titre
+                  // Subtitle
                   Text(
-                    'Entrez votre mot de passe pour accéder à vos documents',
+                    'Enter your password to access your documents',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withOpacity(0.9),
@@ -238,7 +238,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Carte de saisie
+                  // Input card
                   Card(
                     elevation: 8,
                     shape: RoundedRectangleBorder(
@@ -248,15 +248,15 @@ class _UnlockScreenState extends State<UnlockScreen> {
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          // Champ mot de passe
+                          // Password field
                           TextField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
                             autofocus: true,
                             onSubmitted: (_) => _unlock(),
                             decoration: InputDecoration(
-                              labelText: 'Mot de passe',
-                              hintText: 'Entrez votre mot de passe',
+                              labelText: 'Password',
+                              hintText: 'Enter your password',
                               prefixIcon: const Icon(Icons.lock),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -279,7 +279,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Bouton de déverrouillage
+                          // Unlock button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -312,7 +312,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                                         Icon(Icons.lock_open),
                                         SizedBox(width: 8),
                                         Text(
-                                          'Déverrouiller',
+                                          'Unlock',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -323,7 +323,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                             ),
                           ),
 
-                          // Indicateur de tentatives échouées
+                          // Failed attempts indicator
                           if (_failedAttempts > 0) ...[
                             const SizedBox(height: 16),
                             Container(
@@ -344,8 +344,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
                                   Expanded(
                                     child: Text(
                                       _failedAttempts == 1
-                                          ? 'Mot de passe incorrect'
-                                          : '$_failedAttempts tentatives échouées',
+                                          ? 'Incorrect password'
+                                          : '$_failedAttempts failed attempts',
                                       style: TextStyle(
                                         color: Colors.red[700],
                                         fontSize: 12,
@@ -387,7 +387,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Note de sécurité
+                  // Security note
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -404,7 +404,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Vos documents sont protégés par un chiffrement de niveau militaire',
+                            'Your documents are protected by military-grade encryption',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 12,

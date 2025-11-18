@@ -79,22 +79,22 @@ class _PermissionsOnboardingScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permission refusée'),
+        title: const Text('Permission Denied'),
         content: Text(
-          'La permission ${_permissionService.getPermissionDisplayName(permission)} a été refusée de manière permanente. '
-          'Vous devez l\'activer manuellement dans les paramètres de l\'application pour utiliser cette fonctionnalité.',
+          'The ${_permissionService.getPermissionDisplayName(permission)} permission has been permanently denied. '
+          'You must enable it manually in the app settings to use this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Plus tard'),
+            child: const Text('Later'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _permissionService.openSettings();
             },
-            child: const Text('Ouvrir les paramètres'),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
@@ -105,10 +105,10 @@ class _PermissionsOnboardingScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permissions refusées'),
+        title: const Text('Permissions Denied'),
         content: Text(
-          'Certaines permissions ont été refusées de manière permanente. '
-          'Vous pouvez les activer manuellement dans les paramètres de l\'application.',
+          'Some permissions have been permanently denied. '
+          'You can enable them manually in the app settings.',
         ),
         actions: [
           TextButton(
@@ -116,14 +116,14 @@ class _PermissionsOnboardingScreenState
               Navigator.of(context).pop();
               _completeOnboarding();
             },
-            child: const Text('Continuer'),
+            child: const Text('Continue'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _permissionService.openSettings();
             },
-            child: const Text('Ouvrir les paramètres'),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
@@ -141,19 +141,19 @@ class _PermissionsOnboardingScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ignorer les permissions ?'),
+        title: const Text('Skip Permissions?'),
         content: const Text(
-          'Certaines fonctionnalités de l\'application ne seront pas disponibles sans ces permissions. '
-          'Vous pourrez les activer plus tard dans les paramètres.',
+          'Some app features will not be available without these permissions. '
+          'You can enable them later in settings.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Ignorer'),
+            child: const Text('Skip'),
           ),
         ],
       ),
@@ -170,7 +170,7 @@ class _PermissionsOnboardingScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Autorisations nécessaires'),
+        title: const Text('Required Permissions'),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -192,7 +192,7 @@ class _PermissionsOnboardingScreenState
 
                     // Title
                     Text(
-                      'Protégez vos données en toute sécurité',
+                      'Protect Your Data Securely',
                       style: Theme.of(context).textTheme.headlineSmall,
                       textAlign: TextAlign.center,
                     ),
@@ -200,8 +200,8 @@ class _PermissionsOnboardingScreenState
 
                     // Description
                     Text(
-                      'SafeKeeper a besoin de certaines autorisations pour fonctionner correctement. '
-                      'Nous respectons votre vie privée et n\'utilisons ces permissions que pour les fonctionnalités décrites ci-dessous.',
+                      'SafeKeeper needs certain permissions to function properly. '
+                      'We respect your privacy and only use these permissions for the features described below.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -238,7 +238,7 @@ class _PermissionsOnboardingScreenState
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Vous pouvez modifier ces autorisations à tout moment dans les paramètres de votre appareil.',
+                              'You can change these permissions at any time in your device settings.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.blue[900],
@@ -290,14 +290,14 @@ class _PermissionsOnboardingScreenState
                             ),
                           )
                         : const Text(
-                            'Autoriser toutes les permissions',
+                            'Allow All Permissions',
                             style: TextStyle(fontSize: 16),
                           ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _isLoading ? null : _skipOnboarding,
-                    child: const Text('Ignorer pour le moment'),
+                    child: const Text('Skip for Now'),
                   ),
                 ],
               ),
@@ -375,7 +375,7 @@ class _PermissionsOnboardingScreenState
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Autorisée',
+                              'Granted',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.green[700],
@@ -393,7 +393,7 @@ class _PermissionsOnboardingScreenState
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Refusée',
+                              'Denied',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.red[700],
@@ -426,7 +426,7 @@ class _PermissionsOnboardingScreenState
               OutlinedButton.icon(
                 onPressed: () => _permissionService.openSettings(),
                 icon: const Icon(Icons.settings, size: 16),
-                label: const Text('Ouvrir les paramètres'),
+                label: const Text('Open Settings'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red[700],
                   side: BorderSide(color: Colors.red[300]!),

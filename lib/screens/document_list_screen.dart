@@ -8,19 +8,30 @@ import 'viewers/generic_file_viewer_screen.dart';
 import 'viewers/audio_viewer_screen.dart';
 
 class DocumentListScreen extends StatefulWidget {
-  const DocumentListScreen({super.key});
+  final VoidCallback? onVisibilityChanged;
+  
+  const DocumentListScreen({
+    super.key,
+    this.onVisibilityChanged,
+  });
 
   @override
   State<DocumentListScreen> createState() => _DocumentListScreenState();
 }
 
-class _DocumentListScreenState extends State<DocumentListScreen> {
+class _DocumentListScreenState extends State<DocumentListScreen>
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
+  bool _isVisible = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addObserver(this);
     // Initialize ViewModel
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DocumentListViewModel>().initialize();
@@ -28,7 +39,45 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Reload documents when app comes to foreground
+    if (state == AppLifecycleState.resumed && _isVisible) {
+      _refreshDocuments();
+    }
+  }
+
+  /// Public method to refresh documents (can be called from parent)
+  void refreshDocuments() {
+    _refreshDocuments();
+  }
+
+  /// Internal method to refresh documents
+  void _refreshDocuments() {
+    if (mounted) {
+      // Use post frame callback to avoid calling during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<DocumentListViewModel>().loadDocuments();
+        }
+      });
+    }
+  }
+
+  /// Called when this screen becomes visible
+  void setVisible(bool visible) {
+    if (_isVisible != visible) {
+      _isVisible = visible;
+      if (visible && mounted) {
+        // Refresh documents when screen becomes visible
+        _refreshDocuments();
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -246,6 +295,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final viewModel = context.watch<DocumentListViewModel>();
     
     return Scaffold(

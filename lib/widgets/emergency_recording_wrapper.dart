@@ -8,6 +8,7 @@ import '../services/encryption_service.dart';
 import '../services/document_service.dart';
 import '../services/file_type_detector.dart';
 import '../viewmodels/home_view_model.dart';
+import '../viewmodels/document_list_view_model.dart';
 import '../screens/panic_lock_screen.dart';
 
 /// Global wrapper that adds emergency recording functionality to all screens
@@ -152,6 +153,9 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        
+        // Refresh document list after successful save
+        _refreshDocumentList();
       }
     } catch (e) {
       print('Error processing recording: $e');
@@ -243,6 +247,25 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
     } else {
       // Unlock failed - throw error to be caught by PanicLockScreen
       throw Exception('Incorrect password');
+    }
+  }
+
+  /// Refresh the document list view model
+  void _refreshDocumentList() {
+    try {
+      // Use post frame callback to avoid calling during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          try {
+            context.read<DocumentListViewModel>().loadDocuments();
+          } catch (e) {
+            // Silently fail if DocumentListViewModel is not available
+            print('Could not refresh document list: $e');
+          }
+        }
+      });
+    } catch (e) {
+      print('Could not schedule document list refresh: $e');
     }
   }
 

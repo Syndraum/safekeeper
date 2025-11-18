@@ -25,17 +25,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   final _recordingService = RecordingService();
   bool _isRecording = false;
+  
+  // Callback to refresh document list
+  VoidCallback? _refreshDocumentList;
 
   // Pages for each tab
-  final List<Widget> _pages = const [
-    DocumentListScreen(),
-    UploadScreen(),
-    SettingsScreen(),
-  ];
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize pages with callback
+    _pages = [
+      DocumentListScreen(
+        onVisibilityChanged: () {
+          // This will be called when the screen needs to refresh
+        },
+      ),
+      const UploadScreen(),
+      const SettingsScreen(),
+    ];
+    
     // Listen to recording state
     _recordingService.recordingStateStream.listen((isRecording) {
       if (mounted) {
@@ -47,9 +58,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onTabChanged(int index) {
+    final previousIndex = _currentIndex;
+    
     setState(() {
       _currentIndex = index;
     });
+    
+    // Trigger refresh when switching to document list from another tab
+    if (index == 0 && previousIndex != 0) {
+      // Small delay to ensure the widget is built
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          // Force a rebuild which will trigger the document list to refresh
+          setState(() {});
+        }
+      });
+    }
   }
 
   @override

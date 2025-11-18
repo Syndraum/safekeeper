@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/upload_view_model.dart';
+import '../viewmodels/document_list_view_model.dart';
 import '../widgets/vocal_memo_recorder.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -85,6 +86,9 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       }
       return;
     }
@@ -107,6 +111,9 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -158,6 +165,9 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       }
       return;
     }
@@ -180,6 +190,9 @@ class _UploadScreenState extends State<UploadScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -224,6 +237,9 @@ class _UploadScreenState extends State<UploadScreen> {
                     backgroundColor: Colors.green,
                   ),
                 );
+                
+                // Refresh document list after successful upload
+                _refreshDocumentList();
               } else if (viewModel.hasError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -248,6 +264,25 @@ class _UploadScreenState extends State<UploadScreen> {
         },
       ),
     );
+  }
+
+  /// Refresh the document list view model
+  void _refreshDocumentList() {
+    try {
+      // Use post frame callback to avoid calling during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          try {
+            context.read<DocumentListViewModel>().loadDocuments();
+          } catch (e) {
+            // Silently fail if DocumentListViewModel is not available
+            print('Could not refresh document list: $e');
+          }
+        }
+      });
+    } catch (e) {
+      print('Could not schedule document list refresh: $e');
+    }
   }
 
   @override

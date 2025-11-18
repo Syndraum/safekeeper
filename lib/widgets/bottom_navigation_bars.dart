@@ -27,30 +27,31 @@ class DualBottomNavigationBars extends StatelessWidget {
         // First Bar - Emergency Actions (now on top)
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.red.shade800,
-                Colors.red.shade700,
-              ],
-            ),
-            boxShadow: [
+              color: Theme.of(context).colorScheme.surface,
+              boxShadow: [
               BoxShadow(
-                color: Colors.red.withOpacity(0.3),
-                blurRadius: 8,
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
                 offset: const Offset(0, -2),
               ),
             ],
+            border: Border(
+              top: BorderSide(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
           ),
           child: SafeArea(
             top: false,
+            bottom: false,
             child: SizedBox(
-              height: 75,
+              height: 60,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Panic Button
+                    // Panic Button - Takes 50% of space
                     _buildEmergencyButton(
                       context,
                       icon: Icons.warning_rounded,
@@ -59,11 +60,11 @@ class DualBottomNavigationBars extends StatelessWidget {
                       isPulsingRed: true,
                     ),
 
-                    // Emergency Recording Button
+                    // Emergency Recording Button - Takes 50% of space
                     _buildEmergencyButton(
                       context,
                       icon: isRecording ? Icons.stop : Icons.videocam,
-                      label: isRecording ? 'STOP' : 'EMERGENCY',
+                      label: isRecording ? 'STOP' : 'RECORD',
                       onPressed: onEmergencyRecordingPressed,
                       isPulsingRed: isRecording,
                     ),
@@ -76,15 +77,15 @@ class DualBottomNavigationBars extends StatelessWidget {
 
         // Second Bar - Main Navigation (now on bottom)
         Container(
+          margin: const EdgeInsets.symmetric(horizontal: 26),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
+            border: Border(
+              top: BorderSide(
+                color: Colors.grey.shade300,
+                width: 1,
               ),
-            ],
+            )
           ),
           child: SafeArea(
             top: false,
@@ -167,50 +168,68 @@ class DualBottomNavigationBars extends StatelessWidget {
     required VoidCallback onPressed,
     bool isPulsingRed = false,
   }) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 8,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.white,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: onPressed,
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 50,
-                height: 50,
-                alignment: Alignment.center,
-                child: Icon(
-                  icon,
-                  size: 28,
-                  color: isPulsingRed ? Colors.red.shade900 : Colors.red.shade700,
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(12),
+            splashColor: Colors.red.withOpacity(0.15),
+            highlightColor: Colors.red.withOpacity(0.08),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: isPulsingRed 
+                    ? Colors.red.shade50
+                    : Colors.red.shade50.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isPulsingRed 
+                      ? Colors.red.shade400
+                      : Colors.red.shade300,
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isPulsingRed 
+                        ? Colors.red.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.05),
+                    blurRadius: isPulsingRed ? 6 : 3,
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 22,
+                    color: isPulsingRed 
+                        ? Colors.red.shade700 
+                        : Colors.red.shade600,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isPulsingRed 
+                          ? Colors.red.shade700 
+                          : Colors.red.shade600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

@@ -368,15 +368,24 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
         // Panic lock screen overlay (blocks everything when active)
         if (_isPanicLocked)
           Positioned.fill(
-            child: PanicLockScreen(
-              onUnlock: _onUnlockAttempt,
-              onUnlockSuccess: () {
-                if (mounted) {
-                  setState(() {
-                    _isPanicLocked = false;
-                  });
-                }
-              },
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color.fromARGB(255, 36, 77, 124),
+                ),
+                useMaterial3: true,
+              ),
+              home: PanicLockScreen(
+                onUnlock: _onUnlockAttempt,
+                onUnlockSuccess: () {
+                  if (mounted) {
+                    setState(() {
+                      _isPanicLocked = false;
+                    });
+                  }
+                },
+              ),
             ),
           ),
 

@@ -148,15 +148,14 @@ class FileTypeDetector {
         bytes[6] == 0x79 &&
         bytes[7] == 0x70) {
       // Check if it's M4A (audio) or MP4 (video)
-      // M4A files typically have 'M4A ' or 'mp42' in the ftyp box
+      // M4A files typically have 'M4A ' in the ftyp box
       if (bytes.length >= 12) {
-        // Check for M4A signature
-        if ((bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41) || // M4A
-            (bytes.length >= 16 && bytes[8] == 0x6D && bytes[9] == 0x70 && 
-             bytes[10] == 0x34 && bytes[11] == 0x32)) { // mp42 (can be audio)
+        // Check for M4A signature (0x4D 0x34 0x41 0x20 = "M4A ")
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41 && bytes[11] == 0x20) {
           return FileTypeCategory.audio;
         }
       }
+      // All other ftyp-based files (including mp42, isom, etc.) are video
       return FileTypeCategory.video;
     }
     

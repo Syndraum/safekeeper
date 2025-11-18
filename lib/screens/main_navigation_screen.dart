@@ -22,7 +22,7 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = 1; // Start with Upload Screen (index 1)
   final _recordingService = RecordingService();
   bool _isRecording = false;
   

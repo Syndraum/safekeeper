@@ -250,17 +250,13 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Document List'),
+        title: const Text('My Documents'),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.sync),
             onPressed: _syncAllDocuments,
             tooltip: 'Sync all documents',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, '/settings'),
-            tooltip: 'Settings',
           ),
         ],
         bottom: PreferredSize(

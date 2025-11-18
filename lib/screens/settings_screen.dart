@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/settings_view_model.dart';
 import 'settings/storage_settings_screen.dart';
+import 'settings/security_settings_screen.dart';
 import 'settings/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -102,6 +103,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const StorageSettingsScreen(),
+                ),
+              );
+            },
+          ),
+
+          const Divider(),
+
+          // Security
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.security,
+            iconColor: Colors.green,
+            title: 'Security',
+            subtitle: 'Manage master password',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SecuritySettingsScreen(),
                 ),
               );
             },

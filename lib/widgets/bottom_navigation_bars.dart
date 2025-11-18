@@ -50,7 +50,7 @@ class DualBottomNavigationBars extends StatelessWidget {
                     // Panic Button - Takes 50% of space
                     EmergencyButtonWidget(
                       icon: Icons.warning_rounded,
-                      label: 'PANIC',
+                      label: 'SOS',
                       onPressed: onPanicPressed,
                       isPulsingRed: true,
                     ),

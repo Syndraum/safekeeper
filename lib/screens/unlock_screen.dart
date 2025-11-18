@@ -337,7 +337,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                         // Panic Button
                         EmergencyButtonWidget(
                           icon: Icons.warning_rounded,
-                          label: 'PANIC',
+                          label: 'SOS',
                           onPressed: _handlePanic,
                           isPulsingRed: true,
                         ),

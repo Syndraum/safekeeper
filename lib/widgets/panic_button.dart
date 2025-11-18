@@ -116,7 +116,7 @@ class _PanicButtonState extends State<PanicButton>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'PANIC',
+                    'SOS',
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 10,

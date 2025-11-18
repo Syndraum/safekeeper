@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
 import '../viewmodels/settings_view_model.dart';
 import 'settings/storage_settings_screen.dart';
 import 'settings/security_settings_screen.dart';
@@ -32,37 +33,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
         automaticallyImplyLeading: false,
       ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing16),
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing24,
+              vertical: AppTheme.spacing8,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Configure your SafeKeeper',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTheme.heading3,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppTheme.spacing8),
                 Text(
                   'Manage backup, storage, and app settings',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.neutral600,
                   ),
                 ),
               ],
             ),
           ),
 
-          const Divider(),
+          const SizedBox(height: AppTheme.spacing16),
 
           // Backup & Sync Settings - Coming Soon
           _buildSettingsTile(
             context: context,
-            icon: Icons.cloud_sync,
-            iconColor: Colors.grey,
+            icon: Icons.cloud_sync_rounded,
+            iconColor: AppTheme.neutral400,
             title: 'Backup & Sync',
             subtitle: 'Coming soon',
             onTap: () {
@@ -78,8 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Cloud Providers - Coming Soon
           _buildSettingsTile(
             context: context,
-            icon: Icons.cloud,
-            iconColor: Colors.grey,
+            icon: Icons.cloud_rounded,
+            iconColor: AppTheme.neutral400,
             title: 'Cloud Providers',
             subtitle: 'Coming soon',
             onTap: () {
@@ -95,8 +98,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Storage & Cache
           _buildSettingsTile(
             context: context,
-            icon: Icons.storage,
-            iconColor: Colors.orange,
+            icon: Icons.storage_rounded,
+            iconColor: AppTheme.warning,
             title: 'Storage & Cache',
             subtitle: 'Cache size: ${viewModel.cacheSize}',
             onTap: () {
@@ -109,13 +112,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          const Divider(),
+          const SizedBox(height: AppTheme.spacing8),
 
           // Security
           _buildSettingsTile(
             context: context,
-            icon: Icons.security,
-            iconColor: Colors.green,
+            icon: Icons.security_rounded,
+            iconColor: AppTheme.success,
             title: 'Security',
             subtitle: 'Manage master password',
             onTap: () {
@@ -131,8 +134,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Permissions
           _buildSettingsTile(
             context: context,
-            icon: Icons.admin_panel_settings,
-            iconColor: Colors.purple,
+            icon: Icons.admin_panel_settings_rounded,
+            iconColor: AppTheme.secondary,
             title: 'Permissions',
             subtitle: 'Manage app permissions',
             onTap: () {
@@ -145,13 +148,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          const Divider(),
+          const SizedBox(height: AppTheme.spacing8),
 
           // About
           _buildSettingsTile(
             context: context,
-            icon: Icons.info,
-            iconColor: Colors.green,
+            icon: Icons.info_rounded,
+            iconColor: AppTheme.primary,
             title: 'About',
             subtitle: 'App information and security details',
             onTap: () {
@@ -164,53 +167,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.spacing24),
 
           // Quick info card
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              color: Colors.blue[50],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          color: Colors.blue,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Coming Soon',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[900],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildStatusItem(
-                      icon: Icons.cloud_upload,
-                      text: 'Cloud backup to Google Drive & Dropbox',
-                      color: Colors.blue,
-                    ),
-                    _buildStatusItem(
-                      icon: Icons.sync,
-                      text: 'Automatic synchronization',
-                      color: Colors.blue,
-                    ),
-                    _buildStatusItem(
-                      icon: Icons.security,
-                      text: 'End-to-end encrypted backups',
-                      color: Colors.blue,
-                    ),
-                  ],
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.05),
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  width: 1,
                 ),
+              ),
+              padding: const EdgeInsets.all(AppTheme.spacing16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: AppTheme.spacing8),
+                      Text(
+                        'Coming Soon',
+                        style: AppTheme.heading6.copyWith(
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacing12),
+                  _buildStatusItem(
+                    icon: Icons.cloud_upload_rounded,
+                    text: 'Cloud backup to Google Drive & Dropbox',
+                    color: AppTheme.primary,
+                  ),
+                  _buildStatusItem(
+                    icon: Icons.sync_rounded,
+                    text: 'Automatic synchronization',
+                    color: AppTheme.primary,
+                  ),
+                  _buildStatusItem(
+                    icon: Icons.security_rounded,
+                    text: 'End-to-end encrypted backups',
+                    color: AppTheme.primary,
+                  ),
+                ],
               ),
             ),
           ),
@@ -227,33 +234,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.0),
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing4,
+      ),
+      decoration: AppTheme.cardDecoration,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppTheme.borderRadiusMedium,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacing16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing12),
+                  decoration: AppTheme.iconContainerDecoration(iconColor),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: AppTheme.spacing16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTheme.heading6,
+                      ),
+                      const SizedBox(height: AppTheme.spacing4),
+                      Text(
+                        subtitle,
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.neutral400,
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: iconColor, size: 24),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
       ),
     );
   }
@@ -264,23 +290,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color color,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
       child: Row(
         children: [
           Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.spacing8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 13,
-                color: color == Colors.grey 
-                    ? Colors.grey[700] 
-                    : color == Colors.green 
-                        ? Colors.green[900]
-                        : color == Colors.orange
-                            ? Colors.orange[900]
-                            : color,
+              style: AppTheme.bodySmall.copyWith(
+                color: AppTheme.neutral700,
               ),
             ),
           ),

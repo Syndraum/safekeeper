@@ -42,8 +42,8 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // Retourner à l'écran principal
-        Navigator.of(context).pushReplacementNamed('/');
+        // Navigate to permissions onboarding screen
+        Navigator.of(context).pushReplacementNamed('/permissions-onboarding');
       } else if (viewModel.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../viewmodels/settings_view_model.dart';
 import 'settings/storage_settings_screen.dart';
 import 'settings/security_settings_screen.dart';
+import 'settings/permissions_settings_screen.dart';
 import 'settings/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -122,6 +123,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const SecuritySettingsScreen(),
+                ),
+              );
+            },
+          ),
+
+          // Permissions
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.admin_panel_settings,
+            iconColor: Colors.purple,
+            title: 'Permissions',
+            subtitle: 'Manage app permissions',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PermissionsSettingsScreen(),
                 ),
               );
             },

@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/password_setup_screen.dart';
 import 'screens/unlock_screen.dart';
+import 'screens/permissions_onboarding_screen.dart';
 import 'services/encryption_service.dart';
 import 'services/auth_service.dart';
 import 'services/settings_service.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/document_service.dart';
 import 'services/cache_service.dart';
+import 'services/permission_service.dart';
 import 'services/cloud_providers/google_drive_provider.dart';
 import 'services/cloud_providers/dropbox_provider.dart';
 import 'viewmodels/auth_view_model.dart';
@@ -35,6 +37,9 @@ void main() async {
   final cacheService = CacheService();
   await cacheService.initialize();
 
+  final permissionService = PermissionService();
+  await permissionService.initialize();
+
   final authService = AuthService();
   final documentService = DocumentService();
   final googleDriveProvider = GoogleDriveProvider();
@@ -42,16 +47,22 @@ void main() async {
 
   // Check if password is set
   final isPasswordSet = await authService.isPasswordSet();
+  
+  // Check if permissions onboarding is completed
+  final isPermissionsOnboardingCompleted = 
+      permissionService.isPermissionsOnboardingCompleted();
 
   runApp(
     MyApp(
       isPasswordSet: isPasswordSet,
+      isPermissionsOnboardingCompleted: isPermissionsOnboardingCompleted,
       authService: authService,
       encryptionService: encryptionService,
       documentService: documentService,
       settingsService: settingsService,
       backupService: backupService,
       cacheService: cacheService,
+      permissionService: permissionService,
       googleDriveProvider: googleDriveProvider,
       dropboxProvider: dropboxProvider,
     ),
@@ -60,24 +71,28 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final bool isPasswordSet;
+  final bool isPermissionsOnboardingCompleted;
   final AuthService authService;
   final EncryptionService encryptionService;
   final DocumentService documentService;
   final SettingsService settingsService;
   final CloudBackupService backupService;
   final CacheService cacheService;
+  final PermissionService permissionService;
   final GoogleDriveProvider googleDriveProvider;
   final DropboxProvider dropboxProvider;
 
   const MyApp({
     super.key,
     required this.isPasswordSet,
+    required this.isPermissionsOnboardingCompleted,
     required this.authService,
     required this.encryptionService,
     required this.documentService,
     required this.settingsService,
     required this.backupService,
     required this.cacheService,
+    required this.permissionService,
     required this.googleDriveProvider,
     required this.dropboxProvider,
   });
@@ -93,6 +108,7 @@ class MyApp extends StatelessWidget {
         Provider<SettingsService>.value(value: settingsService),
         Provider<CloudBackupService>.value(value: backupService),
         Provider<CacheService>.value(value: cacheService),
+        Provider<PermissionService>.value(value: permissionService),
         Provider<GoogleDriveProvider>.value(value: googleDriveProvider),
         Provider<DropboxProvider>.value(value: dropboxProvider),
 
@@ -131,6 +147,7 @@ class MyApp extends StatelessWidget {
       ],
       child: _AppWithEmergencyWrapper(
         isPasswordSet: isPasswordSet,
+        isPermissionsOnboardingCompleted: isPermissionsOnboardingCompleted,
       ),
     );
   }
@@ -139,9 +156,11 @@ class MyApp extends StatelessWidget {
 /// Wrapper widget that integrates emergency functionality with navigation
 class _AppWithEmergencyWrapper extends StatefulWidget {
   final bool isPasswordSet;
+  final bool isPermissionsOnboardingCompleted;
 
   const _AppWithEmergencyWrapper({
     required this.isPasswordSet,
+    required this.isPermissionsOnboardingCompleted,
   });
 
   @override
@@ -160,6 +179,18 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
 
   void _setRecordingCallback(VoidCallback callback) {
     _recordingCallback = callback;
+  }
+
+  String _getInitialRoute() {
+    // First launch: password setup → permissions onboarding → main app
+    // Subsequent launches: unlock → main app
+    if (!widget.isPasswordSet) {
+      return '/password-setup';
+    } else if (!widget.isPermissionsOnboardingCompleted) {
+      return '/permissions-onboarding';
+    } else {
+      return '/unlock';
+    }
   }
 
   @override
@@ -184,10 +215,11 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
                 onEmergencyRecordingPressed: _recordingCallback,
               ),
           '/password-setup': (context) => const PasswordSetupScreen(),
+          '/permissions-onboarding': (context) => const PermissionsOnboardingScreen(),
           '/unlock': (context) => const UnlockScreen(),
         },
-        // Route initiale basée sur l'état du mot de passe
-        initialRoute: widget.isPasswordSet ? '/unlock' : '/password-setup',
+        // Route initiale basée sur l'état du mot de passe et des permissions
+        initialRoute: _getInitialRoute(),
       ),
     );
   }

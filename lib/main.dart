@@ -152,6 +152,7 @@ class _AppWithEmergencyWrapper extends StatefulWidget {
 class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
   VoidCallback? _panicCallback;
   VoidCallback? _recordingCallback;
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   void _setPanicCallback(VoidCallback callback) {
     _panicCallback = callback;
@@ -164,9 +165,11 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
   @override
   Widget build(BuildContext context) {
     return EmergencyRecordingWrapper(
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       onPanicCallback: _setPanicCallback,
       onRecordingCallback: _setRecordingCallback,
       child: MaterialApp(
+        scaffoldMessengerKey: _scaffoldMessengerKey,
         title: 'SafeKeeper - Gestion de Documents Sécurisés',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(

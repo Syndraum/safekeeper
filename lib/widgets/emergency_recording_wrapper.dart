@@ -16,12 +16,14 @@ class EmergencyRecordingWrapper extends StatefulWidget {
   final Widget child;
   final Function(VoidCallback)? onPanicCallback;
   final Function(VoidCallback)? onRecordingCallback;
+  final GlobalKey<ScaffoldMessengerState>? scaffoldMessengerKey;
 
   const EmergencyRecordingWrapper({
     super.key,
     required this.child,
     this.onPanicCallback,
     this.onRecordingCallback,
+    this.scaffoldMessengerKey,
   });
 
   @override
@@ -120,7 +122,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
 
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        widget.scaffoldMessengerKey?.currentState?.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -167,7 +169,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
   void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    widget.scaffoldMessengerKey?.currentState?.showSnackBar(
       SnackBar(
         content: Row(
           children: [

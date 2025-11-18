@@ -20,17 +20,19 @@ class FileTypeDetector {
     // First try magic number detection (most reliable)
     final magicNumberType = _detectByMagicNumber(bytes);
     
-    // Try MIME type detection as fallback
+    // Try MIME type detection as fallback or for ambiguous cases
     String? mimeType;
-    if (fileName != null) {
+    if (fileName != null && fileName.isNotEmpty) {
       mimeType = lookupMimeType(fileName, headerBytes: bytes);
     } else {
+      // Even without filename, try to detect from header bytes alone
       mimeType = lookupMimeType('', headerBytes: bytes);
     }
     
     // Determine category based on magic number or MIME type
     FileTypeCategory category;
     if (magicNumberType != null) {
+      // Magic number detection succeeded
       category = magicNumberType;
       // If we detected by magic number, try to get more specific MIME type
       if (mimeType == null) {
@@ -45,8 +47,27 @@ class FileTypeDetector {
         }
       }
     } else if (mimeType != null) {
+      // Magic number detection returned null (ambiguous case like mp42/isom)
+      // or failed - use MIME type detection
       category = _categoryFromMimeType(mimeType);
+      // If MIME type detection also fails, try one more time with just the filename
+      if (category == FileTypeCategory.unknown && fileName != null && fileName.isNotEmpty) {
+        // Check if filename suggests it's an audio file
+        final lowerFileName = fileName.toLowerCase();
+        if (lowerFileName.endsWith('.m4a') || 
+            lowerFileName.endsWith('.aac') || 
+            lowerFileName.endsWith('.mp3') ||
+            lowerFileName.endsWith('.wav') ||
+            lowerFileName.endsWith('.ogg') ||
+            lowerFileName.endsWith('.flac')) {
+          category = FileTypeCategory.audio;
+          if (mimeType == 'application/octet-stream') {
+            mimeType = 'audio/mp4'; // Default for M4A
+          }
+        }
+      }
     } else {
+      // Both detection methods failed
       category = FileTypeCategory.unknown;
       mimeType = 'application/octet-stream';
     }
@@ -170,10 +191,26 @@ class FileTypeDetector {
         if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x50 && bytes[11] == 0x20) {
           return FileTypeCategory.audio;
         }
+        // Check for mp42 signature (0x6D 0x70 0x34 0x32 = "mp42")
+        // This is commonly used by audio recorders but can also be video
+        // We'll return null to let MIME type detection decide
+        if (bytes[8] == 0x6D && bytes[9] == 0x70 && bytes[10] == 0x34 && bytes[11] == 0x32) {
+          return null; // Let MIME type detection decide
+        }
+        // Check for isom signature (0x69 0x73 0x6F 0x6D = "isom")
+        // ISO Base Media file format - can be audio or video
+        // We'll return null to let MIME type detection decide
+        if (bytes[8] == 0x69 && bytes[9] == 0x73 && bytes[10] == 0x6F && bytes[11] == 0x6D) {
+          return null; // Let MIME type detection decide
+        }
+        // Check for iso2 signature (0x69 0x73 0x6F 0x32 = "iso2")
+        // ISO Base Media file format version 2 - can be audio or video
+        if (bytes[8] == 0x69 && bytes[9] == 0x73 && bytes[10] == 0x6F && bytes[11] == 0x32) {
+          return null; // Let MIME type detection decide
+        }
       }
-      // For other ftyp-based files, we need to check the file extension or MIME type
-      // to distinguish between audio and video, as mp42/isom can be used for both
-      // Return video as default, but let MIME type detection override if needed
+      // For other ftyp-based files, default to video
+      // MIME type detection can still override this
       return FileTypeCategory.video;
     }
     

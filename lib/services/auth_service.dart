@@ -15,6 +15,7 @@ class AuthService {
   static const String _isPasswordSetKey = 'is_password_set';
 
   bool _isAuthenticated = false;
+  bool _isPanicLocked = false;
 
   /// Vérifie si un mot de passe a été configuré
   Future<bool> isPasswordSet() async {
@@ -24,6 +25,26 @@ class AuthService {
 
   /// Vérifie si l'utilisateur est actuellement authentifié
   bool get isAuthenticated => _isAuthenticated;
+
+  /// Vérifie si l'application est en mode panic lock
+  bool get isPanicLocked => _isPanicLocked;
+
+  /// Active le mode panic lock
+  void activatePanicLock() {
+    _isPanicLocked = true;
+    _isAuthenticated = false;
+  }
+
+  /// Désactive le mode panic lock après vérification du mot de passe
+  Future<bool> unlockFromPanic(String password) async {
+    final isValid = await verifyPassword(password);
+    if (isValid) {
+      _isPanicLocked = false;
+      _isAuthenticated = true;
+      return true;
+    }
+    return false;
+  }
 
   /// Configure un nouveau mot de passe
   Future<bool> setPassword(String password) async {
@@ -96,6 +117,7 @@ class AuthService {
   /// Déconnecte l'utilisateur
   void logout() {
     _isAuthenticated = false;
+    _isPanicLocked = false;
   }
 
   /// Réinitialise le mot de passe (supprime toutes les données)

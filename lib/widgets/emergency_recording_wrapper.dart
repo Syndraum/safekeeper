@@ -2,11 +2,15 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import '../services/recording_service.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
 import '../services/file_type_detector.dart';
+import '../viewmodels/home_view_model.dart';
+import '../screens/panic_lock_screen.dart';
 import 'emergency_recording_button.dart';
+import 'panic_button.dart';
 
 /// Global wrapper that adds emergency recording functionality to all screens
 class EmergencyRecordingWrapper extends StatefulWidget {
@@ -24,6 +28,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
   final _encryptionService = EncryptionService();
   final _documentService = DocumentService();
   bool _isProcessing = false;
+  bool _isPanicLocked = false;
 
   @override
   void dispose() {
@@ -153,6 +158,37 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
     );
   }
 
+  /// Handle panic button press
+  Future<void> _onPanicPressed() async {
+    final homeViewModel = context.read<HomeViewModel>();
+    
+    setState(() {
+      _isPanicLocked = true;
+    });
+
+    // Activate panic lock in the view model (clears cache)
+    await homeViewModel.activatePanicLock();
+  }
+
+  /// Handle unlock attempt from panic screen
+  Future<void> _onUnlockAttempt(String password) async {
+    final homeViewModel = context.read<HomeViewModel>();
+    
+    final success = await homeViewModel.unlockFromPanic(password);
+    
+    if (success) {
+      // Unlock successful
+      if (mounted) {
+        setState(() {
+          _isPanicLocked = false;
+        });
+      }
+    } else {
+      // Unlock failed - throw error to be caught by PanicLockScreen
+      throw Exception('Incorrect password');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -160,14 +196,42 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
         // Main app content
         widget.child,
 
-        // Emergency recording button overlay
-        EmergencyRecordingButton(
-          onRecordingComplete: _onRecordingComplete,
-          onError: _showError,
-        ),
+        // Panic lock screen overlay (blocks everything when active)
+        if (_isPanicLocked)
+          Positioned.fill(
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (context) => PanicLockScreen(
+                    onUnlock: _onUnlockAttempt,
+                    onUnlockSuccess: () {
+                      if (mounted) {
+                        setState(() {
+                          _isPanicLocked = false;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Emergency recording button overlay (bottom right)
+        if (!_isPanicLocked)
+          EmergencyRecordingButton(
+            onRecordingComplete: _onRecordingComplete,
+            onError: _showError,
+          ),
+
+        // Panic button overlay (bottom left)
+        if (!_isPanicLocked)
+          PanicButton(
+            onPanic: _onPanicPressed,
+          ),
 
         // Processing overlay
-        if (_isProcessing)
+        if (_isProcessing && !_isPanicLocked)
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.5),

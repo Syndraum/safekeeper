@@ -6,6 +6,7 @@ import 'viewers/pdf_viewer_screen.dart';
 import 'viewers/image_viewer_screen.dart';
 import 'viewers/generic_file_viewer_screen.dart';
 import 'viewers/audio_viewer_screen.dart';
+import 'viewers/video_viewer_screen.dart';
 
 class DocumentListScreen extends StatefulWidget {
   final VoidCallback? onVisibilityChanged;
@@ -214,6 +215,21 @@ class _DocumentListScreenState extends State<DocumentListScreen>
             context,
             MaterialPageRoute(
               builder: (context) => AudioViewerScreen(
+                encryptedPath: result.encryptedPath,
+                encryptedKey: result.encryptedKey,
+                iv: result.iv,
+                hmac: result.hmac,
+                fileName: result.fileName,
+                mimeType: result.mimeType,
+              ),
+            ),
+          );
+          break;
+        case FileTypeCategory.video:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VideoViewerScreen(
                 encryptedPath: result.encryptedPath,
                 encryptedKey: result.encryptedKey,
                 iv: result.iv,

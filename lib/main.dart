@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/app_theme.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/password_setup_screen.dart';
 import 'screens/unlock_screen.dart';
@@ -202,12 +203,8 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
       child: MaterialApp(
         scaffoldMessengerKey: _scaffoldMessengerKey,
         title: 'SafeKeeper - Secure Document Management',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 36, 77, 124),
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
         // Define routes for navigating between screens
         routes: {
           '/': (context) => MainNavigationScreen(

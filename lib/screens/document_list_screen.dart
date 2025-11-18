@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
 import '../viewmodels/document_list_view_model.dart';
 import '../services/file_type_detector.dart';
 import 'viewers/pdf_viewer_screen.dart';
@@ -128,14 +129,14 @@ class _DocumentListScreenState extends State<DocumentListScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.successMessage ?? 'Document renamed successfully'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.success,
           ),
         );
       } else if (mounted && viewModel.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -150,14 +151,14 @@ class _DocumentListScreenState extends State<DocumentListScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(viewModel.successMessage ?? 'Document deleted successfully'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.success,
         ),
       );
     } else if (mounted && viewModel.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(viewModel.error!.message),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
         ),
       );
     }
@@ -176,7 +177,7 @@ class _DocumentListScreenState extends State<DocumentListScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -264,14 +265,14 @@ class _DocumentListScreenState extends State<DocumentListScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(viewModel.successMessage ?? 'All documents synced successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.success,
         ),
       );
     } else if (mounted && viewModel.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(viewModel.error!.message),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
         ),
       );
     }
@@ -286,26 +287,29 @@ class _DocumentListScreenState extends State<DocumentListScreen>
     }
 
     if (status.isUploading) {
-      return const Padding(
-        padding: EdgeInsets.only(left: 8.0),
+      return Padding(
+        padding: const EdgeInsets.only(left: AppTheme.spacing8),
         child: SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.primary,
+          ),
         ),
       );
     }
 
     if (status.hasFailed) {
       return const Padding(
-        padding: EdgeInsets.only(left: 8.0),
-        child: Icon(Icons.cloud_off, size: 16, color: Colors.orange),
+        padding: EdgeInsets.only(left: AppTheme.spacing8),
+        child: Icon(Icons.cloud_off, size: 16, color: AppTheme.warning),
       );
     }
 
     return const Padding(
-      padding: EdgeInsets.only(left: 8.0),
-      child: Icon(Icons.cloud_done, size: 16, color: Colors.green),
+      padding: EdgeInsets.only(left: AppTheme.spacing8),
+      child: Icon(Icons.cloud_done, size: 16, color: AppTheme.success),
     );
   }
 
@@ -326,9 +330,14 @@ class _DocumentListScreenState extends State<DocumentListScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0),
+          preferredSize: const Size.fromHeight(72.0),
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spacing16,
+              AppTheme.spacing8,
+              AppTheme.spacing16,
+              AppTheme.spacing16,
+            ),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -342,12 +351,6 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                         },
                       )
                     : null,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
               ),
             ),
           ),
@@ -362,11 +365,17 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                          const SizedBox(height: 16),
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: AppTheme.neutral400,
+                          ),
+                          const SizedBox(height: AppTheme.spacing16),
                           Text(
                             'No documents found for "${viewModel.searchQuery}"',
-                            style: const TextStyle(color: Colors.grey),
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.neutral500,
+                            ),
                           ),
                         ],
                       ),
@@ -380,48 +389,79 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                         : null;
                     final fileType = doc['file_type'];
                     
-                    return ListTile(
-                      leading: Icon(
-                        _getFileTypeIcon(fileType),
-                        size: 32,
-                        color: Theme.of(context).primaryColor,
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing16,
+                        vertical: AppTheme.spacing8,
                       ),
-                      title: Row(
-                        children: [
-                          Expanded(child: Text(doc['name'])),
-                          _buildBackupStatusIcon(doc['id']),
-                        ],
-                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacing16,
+                          vertical: AppTheme.spacing8,
+                        ),
+                        leading: Container(
+                          padding: const EdgeInsets.all(AppTheme.spacing8),
+                          decoration: AppTheme.iconContainerDecoration(
+                            AppTheme.primary,
+                          ),
+                          child: Icon(
+                            _getFileTypeIcon(fileType),
+                            size: 24,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                doc['name'],
+                                style: AppTheme.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            _buildBackupStatusIcon(doc['id']),
+                          ],
+                        ),
                         subtitle: uploadDate != null
-                            ? Text(
-                                viewModel.formatDate(uploadDate),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
+                            ? Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTheme.spacing4,
+                                ),
+                                child: Text(
+                                  viewModel.formatDate(uploadDate),
+                                  style: AppTheme.caption,
                                 ),
                               )
                             : null,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _showRenameDialog(
-                              doc['id'],
-                              doc['name'],
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                color: AppTheme.neutral600,
+                              ),
+                              onPressed: () => _showRenameDialog(
+                                doc['id'],
+                                doc['name'],
+                              ),
+                              tooltip: 'Rename',
                             ),
-                            tooltip: 'Rename',
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _showDeleteDialog(doc['id']),
-                            tooltip: 'Delete',
-                          ),
-                        ],
-                      ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: AppTheme.error,
+                              ),
+                              onPressed: () => _showDeleteDialog(doc['id']),
+                              tooltip: 'Delete',
+                            ),
+                          ],
+                        ),
                         onTap: () =>
                             _openDocument(doc['id'], doc['path'], doc['name']),
-                      );
+                      ),
+                    );
                     },
                   ),
     );
@@ -466,7 +506,7 @@ class _DocumentListScreenState extends State<DocumentListScreen>
               _deleteDocument(id);
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             child: const Text('Delete'),
           ),
         ],

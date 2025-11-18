@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_theme.dart';
 import 'emergency_button_widget.dart';
 
 /// Custom dual bottom navigation widget
@@ -27,22 +28,16 @@ class DualBottomNavigationBars extends StatelessWidget {
       children: [
         // First Bar - Emergency Actions (now on top)
         Container(
-          decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
-              ),
-            ],
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
-            ),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        boxShadow: AppTheme.shadowSmall,
+        border: Border(
+          top: BorderSide(
+            color: AppTheme.neutral200,
+            width: 1,
           ),
+        ),
+      ),
           child: SafeArea(
             top: false,
             bottom: false,
@@ -76,12 +71,12 @@ class DualBottomNavigationBars extends StatelessWidget {
 
         // Second Bar - Main Navigation (now on bottom)
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 26),
+          margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacing24),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: AppTheme.surface,
             border: Border(
               top: BorderSide(
-                color: Colors.grey.shade300,
+                color: AppTheme.neutral200,
                 width: 1,
               ),
             )
@@ -130,31 +125,35 @@ class DualBottomNavigationBars extends StatelessWidget {
     required int index,
     required bool isSelected,
   }) {
-    final color = isSelected
-        ? Theme.of(context).colorScheme.primary
-        : Colors.grey.shade600;
+    final color = isSelected ? AppTheme.primary : AppTheme.neutral500;
 
     return Expanded(
-      child: InkWell(
-        onTap: () => onTabChanged(index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 28,
-              color: color,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTabChanged(index),
+          borderRadius: AppTheme.borderRadiusSmall,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 28,
+                  color: color,
+                ),
+                const SizedBox(height: AppTheme.spacing4),
+                Text(
+                  label,
+                  style: AppTheme.caption.copyWith(
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: color,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

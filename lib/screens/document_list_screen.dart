@@ -390,14 +390,15 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                     final fileType = doc['file_type'];
                     
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacing16,
-                        vertical: AppTheme.spacing8,
+                      margin: const EdgeInsets.only(
+                        left: AppTheme.spacing16,
+                        right: AppTheme.spacing16,
+                        bottom: AppTheme.spacing4,
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: AppTheme.spacing16,
-                          vertical: AppTheme.spacing8,
+                          vertical: AppTheme.spacing4,
                         ),
                         leading: Container(
                           padding: const EdgeInsets.all(AppTheme.spacing8),

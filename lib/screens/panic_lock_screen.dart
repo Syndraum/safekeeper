@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_theme.dart';
 
 /// Full-screen panic lock overlay that blocks all app interaction
 /// Requires password to unlock
@@ -90,7 +91,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: AppTheme.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -127,19 +128,26 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                         return Transform.scale(
                           scale: value,
                           child: Container(
-                            padding: const EdgeInsets.all(32),
+                            padding: const EdgeInsets.all(AppTheme.spacing32),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.2),
+                              color: AppTheme.error.withOpacity(0.15),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.red,
+                                color: AppTheme.error,
                                 width: 3,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.error.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
                             ),
-                            child: const Icon(
-                              Icons.lock,
+                            child: Icon(
+                              Icons.lock_rounded,
                               size: 80,
-                              color: Colors.red,
+                              color: AppTheme.error,
                             ),
                           ),
                         );
@@ -151,45 +159,42 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                         }
                       },
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppTheme.spacing48),
 
                     // Title
-                    const Text(
+                    Text(
                       'APP LOCKED',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
+                      style: AppTheme.heading1.copyWith(
+                        color: AppTheme.error,
                         letterSpacing: 2,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.spacing16),
 
                     // Subtitle
-                    const Text(
+                    Text(
                       'Panic mode activated\nEnter password to unlock',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: AppTheme.bodyLarge.copyWith(
                         color: Colors.white70,
                         height: 1.5,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: AppTheme.spacing48),
 
                     // Password input card
                     Card(
-                      elevation: 8,
+                      elevation: 0,
                       color: Colors.grey[900],
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppTheme.borderRadiusLarge,
                         side: BorderSide(
-                          color: Colors.red.withOpacity(0.3),
+                          color: AppTheme.error.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(24.0),
+                        padding: const EdgeInsets.all(AppTheme.spacing24),
                         child: Column(
                           children: [
                             // Password field
@@ -205,15 +210,15 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                 labelStyle: const TextStyle(color: Colors.white70),
                                 hintText: 'Enter your password',
                                 hintStyle: const TextStyle(color: Colors.white38),
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.red,
+                                prefixIcon: Icon(
+                                  Icons.lock_outline_rounded,
+                                  color: AppTheme.error,
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _isPasswordVisible
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
                                     color: Colors.white70,
                                   ),
                                   onPressed: () {
@@ -223,19 +228,19 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                   },
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Colors.red),
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(color: AppTheme.error),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: AppTheme.borderRadiusMedium,
                                   borderSide: BorderSide(
-                                    color: Colors.red.withOpacity(0.5),
+                                    color: AppTheme.error.withOpacity(0.5),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.red,
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.error,
                                     width: 2,
                                   ),
                                 ),
@@ -243,7 +248,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                 fillColor: Colors.black.withOpacity(0.3),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppTheme.spacing24),
 
                             // Unlock button
                             SizedBox(
@@ -251,15 +256,15 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                               child: ElevatedButton(
                                 onPressed: _isUnlocking ? null : _attemptUnlock,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: AppTheme.error,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: AppTheme.spacing16,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: AppTheme.borderRadiusMedium,
                                   ),
-                                  elevation: 4,
+                                  elevation: 0,
                                 ),
                                 child: _isUnlocking
                                     ? const SizedBox(
@@ -273,17 +278,15 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                           ),
                                         ),
                                       )
-                                    : const Row(
+                                    : Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.lock_open),
-                                          SizedBox(width: 8),
+                                          Icon(Icons.lock_open_rounded),
+                                          SizedBox(width: AppTheme.spacing8),
                                           Text(
                                             'UNLOCK',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                            style: AppTheme.button.copyWith(
                                               letterSpacing: 1.2,
                                             ),
                                           ),
@@ -294,32 +297,25 @@ class _PanicLockScreenState extends State<PanicLockScreen>
 
                             // Failed attempts indicator
                             if (_failedAttempts > 0) ...[
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppTheme.spacing16),
                               Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.red.withOpacity(0.5),
-                                  ),
-                                ),
+                                padding: const EdgeInsets.all(AppTheme.spacing12),
+                                decoration: AppTheme.errorContainerDecoration,
                                 child: Row(
                                   children: [
-                                    const Icon(
-                                      Icons.warning_amber,
-                                      color: Colors.red,
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: AppTheme.error,
                                       size: 20,
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppTheme.spacing8),
                                     Expanded(
                                       child: Text(
                                         _failedAttempts == 1
                                             ? 'Incorrect password'
                                             : '$_failedAttempts failed attempts',
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 12,
+                                        style: AppTheme.bodySmall.copyWith(
+                                          color: AppTheme.error,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -332,32 +328,31 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppTheme.spacing32),
 
                     // Security notice
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppTheme.spacing16),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppTheme.error.withOpacity(0.1),
+                        borderRadius: AppTheme.borderRadiusMedium,
                         border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
+                          color: AppTheme.error.withOpacity(0.3),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(
-                            Icons.shield,
-                            color: Colors.red,
+                            Icons.shield_outlined,
+                            color: AppTheme.error,
                             size: 20,
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: AppTheme.spacing12),
                           Expanded(
                             child: Text(
                               'All app functions are blocked until unlocked',
-                              style: TextStyle(
+                              style: AppTheme.bodySmall.copyWith(
                                 color: Colors.white70,
-                                fontSize: 12,
                               ),
                             ),
                           ),

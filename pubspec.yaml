@@ -66,6 +66,8 @@ dependencies:
 
   audioplayers: ^6.1.0  # For audio playback
   
+  record: ^6.1.2  # For audio recording (updated to latest version for compatibility)
+  
   video_player: ^2.8.2  # For video playback
 
   # Cloud backup dependencies

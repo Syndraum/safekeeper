@@ -207,18 +207,21 @@ class _UploadScreenState extends State<UploadScreen> {
 
   Future<void> _showVocalMemoRecorder() async {
     final viewModel = context.read<UploadViewModel>();
+    // Store the upload screen's context before showing dialog
+    final uploadScreenContext = context;
     
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => VocalMemoRecorder(
+      builder: (dialogContext) => VocalMemoRecorder(
         onRecordingComplete: (filePath) async {
-          Navigator.of(context).pop();
+          // Close the dialog first
+          Navigator.of(dialogContext).pop();
           
           // Generate default name
           String defaultName = viewModel.generateVocalMemoName();
           
-          // Show rename dialog
+          // Show rename dialog using the upload screen's context
           String? fileName = await _showRenameDialog(defaultName);
           if (fileName != null && mounted) {
             final result = await viewModel.uploadVocalMemo(filePath, fileName);
@@ -232,7 +235,7 @@ class _UploadScreenState extends State<UploadScreen> {
                   message += '\nBackup started...';
                 }
                 
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
                   SnackBar(
                     content: Text(message),
                     backgroundColor: AppTheme.success,
@@ -242,7 +245,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 // Refresh document list after successful upload
                 _refreshDocumentList();
               } else if (viewModel.hasError) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
                   SnackBar(
                     content: Text(viewModel.error!.message),
                     backgroundColor: AppTheme.error,
@@ -253,9 +256,9 @@ class _UploadScreenState extends State<UploadScreen> {
           }
         },
         onError: (error) {
-          Navigator.of(context).pop();
+          Navigator.of(dialogContext).pop();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
               SnackBar(
                 content: Text(error),
                 backgroundColor: AppTheme.error,

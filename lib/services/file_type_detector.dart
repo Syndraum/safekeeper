@@ -36,6 +36,14 @@ class FileTypeDetector {
       if (mimeType == null) {
         mimeType = _getMimeTypeForCategory(category);
       }
+      // Special case: if magic number says video but MIME type indicates audio (e.g., .m4a files)
+      // trust the MIME type for ftyp-based files
+      if (category == FileTypeCategory.video && mimeType != null) {
+        final mimeCategory = _categoryFromMimeType(mimeType);
+        if (mimeCategory == FileTypeCategory.audio) {
+          category = FileTypeCategory.audio;
+        }
+      }
     } else if (mimeType != null) {
       category = _categoryFromMimeType(mimeType);
     } else {
@@ -148,14 +156,24 @@ class FileTypeDetector {
         bytes[6] == 0x79 &&
         bytes[7] == 0x70) {
       // Check if it's M4A (audio) or MP4 (video)
-      // M4A files typically have 'M4A ' in the ftyp box
+      // M4A files can have various brand identifiers in the ftyp box
       if (bytes.length >= 12) {
         // Check for M4A signature (0x4D 0x34 0x41 0x20 = "M4A ")
         if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41 && bytes[11] == 0x20) {
           return FileTypeCategory.audio;
         }
+        // Check for M4B signature (0x4D 0x34 0x42 0x20 = "M4B ") - audiobook format
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x42 && bytes[11] == 0x20) {
+          return FileTypeCategory.audio;
+        }
+        // Check for M4P signature (0x4D 0x34 0x50 0x20 = "M4P ") - protected audio
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x50 && bytes[11] == 0x20) {
+          return FileTypeCategory.audio;
+        }
       }
-      // All other ftyp-based files (including mp42, isom, etc.) are video
+      // For other ftyp-based files, we need to check the file extension or MIME type
+      // to distinguish between audio and video, as mp42/isom can be used for both
+      // Return video as default, but let MIME type detection override if needed
       return FileTypeCategory.video;
     }
     

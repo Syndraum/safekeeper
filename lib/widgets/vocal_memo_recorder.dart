@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
-import '../services/recording_service.dart';
+import '../services/audio_recording_service.dart';
 
 /// Widget for recording vocal memos with visual feedback
 class VocalMemoRecorder extends StatefulWidget {
@@ -20,7 +20,7 @@ class VocalMemoRecorder extends StatefulWidget {
 
 class _VocalMemoRecorderState extends State<VocalMemoRecorder>
     with SingleTickerProviderStateMixin {
-  final _recordingService = RecordingService();
+  final _audioRecordingService = AudioRecordingService();
   bool _isRecording = false;
   Duration _duration = Duration.zero;
   StreamSubscription<bool>? _stateSubscription;
@@ -43,7 +43,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
     );
 
     // Listen to recording state changes
-    _stateSubscription = _recordingService.recordingStateStream.listen((
+    _stateSubscription = _audioRecordingService.recordingStateStream.listen((
       isRecording,
     ) {
       if (mounted) {
@@ -61,7 +61,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
     });
 
     // Listen to duration changes
-    _durationSubscription = _recordingService.durationStream.listen((duration) {
+    _durationSubscription = _audioRecordingService.durationStream.listen((duration) {
       if (mounted) {
         setState(() {
           _duration = duration;
@@ -79,7 +79,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
   }
 
   Future<void> _startRecording() async {
-    final success = await _recordingService.startRecording();
+    final success = await _audioRecordingService.startRecording();
     if (!success) {
       widget.onError(
         'Failed to start recording. Please check microphone permissions.',
@@ -88,7 +88,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
   }
 
   Future<void> _stopRecording() async {
-    final path = await _recordingService.stopRecording();
+    final path = await _audioRecordingService.stopRecording();
     if (path != null) {
       widget.onRecordingComplete(path);
     } else {
@@ -97,7 +97,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
   }
 
   Future<void> _cancelRecording() async {
-    await _recordingService.cancelRecording();
+    await _audioRecordingService.cancelRecording();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

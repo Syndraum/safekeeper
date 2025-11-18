@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'emergency_button_widget.dart';
 
 /// Custom dual bottom navigation widget
 /// First bar: Emergency action buttons (top)
@@ -52,8 +53,7 @@ class DualBottomNavigationBars extends StatelessWidget {
                 child: Row(
                   children: [
                     // Panic Button - Takes 50% of space
-                    _buildEmergencyButton(
-                      context,
+                    EmergencyButtonWidget(
                       icon: Icons.warning_rounded,
                       label: 'PANIC',
                       onPressed: onPanicPressed,
@@ -61,8 +61,7 @@ class DualBottomNavigationBars extends StatelessWidget {
                     ),
 
                     // Emergency Recording Button - Takes 50% of space
-                    _buildEmergencyButton(
-                      context,
+                    EmergencyButtonWidget(
                       icon: isRecording ? Icons.stop : Icons.videocam,
                       label: isRecording ? 'STOP' : 'RECORD',
                       onPressed: onEmergencyRecordingPressed,
@@ -156,78 +155,6 @@ class DualBottomNavigationBars extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmergencyButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    bool isPulsingRed = false,
-  }) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(12),
-            splashColor: Colors.red.withOpacity(0.15),
-            highlightColor: Colors.red.withOpacity(0.08),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isPulsingRed 
-                    ? Colors.red.shade50
-                    : Colors.red.shade50.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isPulsingRed 
-                      ? Colors.red.shade400
-                      : Colors.red.shade300,
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isPulsingRed 
-                        ? Colors.red.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: isPulsingRed ? 6 : 3,
-                    spreadRadius: 0,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: 22,
-                    color: isPulsingRed 
-                        ? Colors.red.shade700 
-                        : Colors.red.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isPulsingRed 
-                          ? Colors.red.shade700 
-                          : Colors.red.shade600,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

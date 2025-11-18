@@ -208,7 +208,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cloud Backup Settings'),
+        title: const Text('Settings'),
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         children: [

@@ -1,6 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/auth_view_model.dart';
+import '../services/recording_service.dart';
+import '../services/cache_service.dart';
+import '../widgets/emergency_button_widget.dart';
+import '../screens/panic_lock_screen.dart';
 
 /// Écran de déverrouillage pour accéder aux documents
 class UnlockScreen extends StatefulWidget {
@@ -12,14 +17,108 @@ class UnlockScreen extends StatefulWidget {
 
 class _UnlockScreenState extends State<UnlockScreen> {
   final _passwordController = TextEditingController();
+  final _recordingService = RecordingService();
+  final _cacheService = CacheService();
 
   bool _isPasswordVisible = false;
   int _failedAttempts = 0;
+  bool _isRecording = false;
+  bool _isPanicLocked = false;
+  StreamSubscription<bool>? _recordingStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Listen to recording state changes
+    _recordingStateSubscription = _recordingService.recordingStateStream.listen((isRecording) {
+      if (mounted) {
+        setState(() {
+          _isRecording = isRecording;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _recordingStateSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _handlePanic() async {
+    // Clear cache for security
+    await _cacheService.clearAllCache();
+    
+    // Show panic lock screen overlay
+    setState(() {
+      _isPanicLocked = true;
+    });
+  }
+
+  Future<void> _handleUnlockFromPanic(String password) async {
+    final viewModel = context.read<AuthViewModel>();
+    final success = await viewModel.verifyPassword(password);
+    
+    if (success) {
+      // Password correct - dismiss panic lock
+      if (mounted) {
+        setState(() {
+          _isPanicLocked = false;
+        });
+      }
+    } else {
+      // Password incorrect - throw error to be caught by PanicLockScreen
+      throw Exception('Incorrect password');
+    }
+  }
+
+  Future<void> _handleEmergencyRecording() async {
+    if (_isRecording) {
+      // Stop recording
+      final path = await _recordingService.stopRecording();
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Enregistrement d\'urgence sauvegardé'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Échec de la sauvegarde de l\'enregistrement'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      // Check permissions first
+      final hasPermissions = await _recordingService.checkPermissions();
+      if (!hasPermissions && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Autorisations caméra et microphone requises'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // Start recording
+      final success = await _recordingService.startRecording();
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Échec du démarrage de l\'enregistrement'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _unlock() async {
@@ -73,7 +172,10 @@ class _UnlockScreenState extends State<UnlockScreen> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthViewModel>();
     
-    return Scaffold(
+    return Stack(
+      children: [
+        // Main unlock screen
+        Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -260,6 +362,31 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Emergency buttons
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        // Panic Button
+                        EmergencyButtonWidget(
+                          icon: Icons.warning_rounded,
+                          label: 'PANIC',
+                          onPressed: _handlePanic,
+                          isPulsingRed: true,
+                        ),
+
+                        // Emergency Recording Button
+                        EmergencyButtonWidget(
+                          icon: _isRecording ? Icons.stop : Icons.videocam,
+                          label: _isRecording ? 'STOP' : 'RECORD',
+                          onPressed: _handleEmergencyRecording,
+                          isPulsingRed: _isRecording,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
                   // Note de sécurité
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -293,6 +420,32 @@ class _UnlockScreenState extends State<UnlockScreen> {
           ),
         ),
       ),
+        ),
+        
+        // Panic lock screen overlay (blocks everything when active)
+        if (_isPanicLocked)
+          Positioned.fill(
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color.fromARGB(255, 36, 77, 124),
+                ),
+                useMaterial3: true,
+              ),
+              home: PanicLockScreen(
+                onUnlock: _handleUnlockFromPanic,
+                onUnlockSuccess: () {
+                  if (mounted) {
+                    setState(() {
+                      _isPanicLocked = false;
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

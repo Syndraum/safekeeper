@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/upload_screen.dart';
-import 'screens/document_list_screen.dart';
+import 'core/app_theme.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/password_setup_screen.dart';
 import 'screens/unlock_screen.dart';
-import 'screens/settings_screen.dart';
+import 'screens/permissions_onboarding_screen.dart';
 import 'services/encryption_service.dart';
 import 'services/auth_service.dart';
 import 'services/settings_service.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/document_service.dart';
 import 'services/cache_service.dart';
+import 'services/permission_service.dart';
 import 'services/cloud_providers/google_drive_provider.dart';
 import 'services/cloud_providers/dropbox_provider.dart';
 import 'viewmodels/auth_view_model.dart';
@@ -19,7 +20,6 @@ import 'viewmodels/upload_view_model.dart';
 import 'viewmodels/settings_view_model.dart';
 import 'viewmodels/home_view_model.dart';
 import 'widgets/emergency_recording_wrapper.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -38,6 +38,9 @@ void main() async {
   final cacheService = CacheService();
   await cacheService.initialize();
 
+  final permissionService = PermissionService();
+  await permissionService.initialize();
+
   final authService = AuthService();
   final documentService = DocumentService();
   final googleDriveProvider = GoogleDriveProvider();
@@ -45,16 +48,22 @@ void main() async {
 
   // Check if password is set
   final isPasswordSet = await authService.isPasswordSet();
+  
+  // Check if permissions onboarding is completed
+  final isPermissionsOnboardingCompleted = 
+      permissionService.isPermissionsOnboardingCompleted();
 
   runApp(
     MyApp(
       isPasswordSet: isPasswordSet,
+      isPermissionsOnboardingCompleted: isPermissionsOnboardingCompleted,
       authService: authService,
       encryptionService: encryptionService,
       documentService: documentService,
       settingsService: settingsService,
       backupService: backupService,
       cacheService: cacheService,
+      permissionService: permissionService,
       googleDriveProvider: googleDriveProvider,
       dropboxProvider: dropboxProvider,
     ),
@@ -63,24 +72,28 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final bool isPasswordSet;
+  final bool isPermissionsOnboardingCompleted;
   final AuthService authService;
   final EncryptionService encryptionService;
   final DocumentService documentService;
   final SettingsService settingsService;
   final CloudBackupService backupService;
   final CacheService cacheService;
+  final PermissionService permissionService;
   final GoogleDriveProvider googleDriveProvider;
   final DropboxProvider dropboxProvider;
 
   const MyApp({
     super.key,
     required this.isPasswordSet,
+    required this.isPermissionsOnboardingCompleted,
     required this.authService,
     required this.encryptionService,
     required this.documentService,
     required this.settingsService,
     required this.backupService,
     required this.cacheService,
+    required this.permissionService,
     required this.googleDriveProvider,
     required this.dropboxProvider,
   });
@@ -96,6 +109,7 @@ class MyApp extends StatelessWidget {
         Provider<SettingsService>.value(value: settingsService),
         Provider<CloudBackupService>.value(value: backupService),
         Provider<CacheService>.value(value: cacheService),
+        Provider<PermissionService>.value(value: permissionService),
         Provider<GoogleDriveProvider>.value(value: googleDriveProvider),
         Provider<DropboxProvider>.value(value: dropboxProvider),
 
@@ -132,177 +146,77 @@ class MyApp extends StatelessWidget {
           create: (_) => HomeViewModel(authService: authService),
         ),
       ],
-      child: MaterialApp(
-      title: 'SafeKeeper - Gestion de Documents Sécurisés',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 36, 77, 124),
-        ),
-        useMaterial3: true,
-      ),
-        // Wrap the entire app with emergency recording functionality
-        builder: (context, child) {
-          return EmergencyRecordingWrapper(
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
-        // Définit les routes pour naviguer entre écrans
-        routes: {
-          '/': (context) =>
-              const MyHomePage(title: 'SafeKeeper - Documents Sécurisés'),
-          '/upload': (context) => const UploadScreen(),
-          '/list': (context) => const DocumentListScreen(),
-          '/settings': (context) => const SettingsScreen(),
-          '/password-setup': (context) => const PasswordSetupScreen(),
-          '/unlock': (context) => const UnlockScreen(),
-        },
-        // Route initiale basée sur l'état du mot de passe
-        initialRoute: isPasswordSet ? '/unlock' : '/password-setup',
+      child: _AppWithEmergencyWrapper(
+        isPasswordSet: isPasswordSet,
+        isPermissionsOnboardingCompleted: isPermissionsOnboardingCompleted,
       ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+/// Wrapper widget that integrates emergency functionality with navigation
+class _AppWithEmergencyWrapper extends StatefulWidget {
+  final bool isPasswordSet;
+  final bool isPermissionsOnboardingCompleted;
 
-  final String title;
+  const _AppWithEmergencyWrapper({
+    required this.isPasswordSet,
+    required this.isPermissionsOnboardingCompleted,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<_AppWithEmergencyWrapper> createState() =>
+      _AppWithEmergencyWrapperState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  Future<void> _logout() async {
-    final viewModel = context.read<HomeViewModel>();
-    await viewModel.logout();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/unlock');
+class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
+  VoidCallback? _panicCallback;
+  VoidCallback? _recordingCallback;
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  void _setPanicCallback(VoidCallback callback) {
+    _panicCallback = callback;
+  }
+
+  void _setRecordingCallback(VoidCallback callback) {
+    _recordingCallback = callback;
+  }
+
+  String _getInitialRoute() {
+    // First launch: password setup → permissions onboarding → main app
+    // Subsequent launches: unlock → main app
+    if (!widget.isPasswordSet) {
+      return '/password-setup';
+    } else if (!widget.isPermissionsOnboardingCompleted) {
+      return '/permissions-onboarding';
+    } else {
+      return '/unlock';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.lock),
-            tooltip: 'Verrouiller',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icône de sécurité
-              Icon(
-                Icons.shield_outlined,
-                size: 80,
-                color: Theme.of(context).primaryColor,
+    return EmergencyRecordingWrapper(
+      scaffoldMessengerKey: _scaffoldMessengerKey,
+      onPanicCallback: _setPanicCallback,
+      onRecordingCallback: _setRecordingCallback,
+      child: MaterialApp(
+        scaffoldMessengerKey: _scaffoldMessengerKey,
+        title: 'SafeKeeper - Secure Document Management',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        // Define routes for navigating between screens
+        routes: {
+          '/': (context) => MainNavigationScreen(
+                onPanicPressed: _panicCallback,
+                onEmergencyRecordingPressed: _recordingCallback,
               ),
-              const SizedBox(height: 24),
-
-              // Titre de bienvenue
-              Text(
-                'Bienvenue dans SafeKeeper',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-
-              // Description
-              Text(
-                'Vos documents sont protégés par un chiffrement de niveau militaire',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-
-              // Bouton pour uploader un document
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/upload'),
-                icon: const Icon(Icons.upload_file, size: 28),
-                label: const Text(
-                  'Uploader un document',
-                  style: TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                  minimumSize: const Size(double.infinity, 60),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Bouton pour voir la liste des documents
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/list'),
-                icon: const Icon(Icons.folder_open, size: 28),
-                label: const Text(
-                  'Voir mes documents',
-                  style: TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                  minimumSize: const Size(double.infinity, 60),
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // Informations de sécurité
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green[700]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Sécurité active',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[700],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'RSA-2048 + AES-256 + HMAC-SHA256',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.green[900],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+          '/password-setup': (context) => const PasswordSetupScreen(),
+          '/permissions-onboarding': (context) => const PermissionsOnboardingScreen(),
+          '/unlock': (context) => const UnlockScreen(),
+        },
+        // Initial route based on password and permissions status
+        initialRoute: _getInitialRoute(),
       ),
     );
   }

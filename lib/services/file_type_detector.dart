@@ -20,25 +20,54 @@ class FileTypeDetector {
     // First try magic number detection (most reliable)
     final magicNumberType = _detectByMagicNumber(bytes);
     
-    // Try MIME type detection as fallback
+    // Try MIME type detection as fallback or for ambiguous cases
     String? mimeType;
-    if (fileName != null) {
+    if (fileName != null && fileName.isNotEmpty) {
       mimeType = lookupMimeType(fileName, headerBytes: bytes);
     } else {
+      // Even without filename, try to detect from header bytes alone
       mimeType = lookupMimeType('', headerBytes: bytes);
     }
     
     // Determine category based on magic number or MIME type
     FileTypeCategory category;
     if (magicNumberType != null) {
+      // Magic number detection succeeded
       category = magicNumberType;
       // If we detected by magic number, try to get more specific MIME type
       if (mimeType == null) {
         mimeType = _getMimeTypeForCategory(category);
       }
+      // Special case: if magic number says video but MIME type indicates audio (e.g., .m4a files)
+      // trust the MIME type for ftyp-based files
+      if (category == FileTypeCategory.video && mimeType != null) {
+        final mimeCategory = _categoryFromMimeType(mimeType);
+        if (mimeCategory == FileTypeCategory.audio) {
+          category = FileTypeCategory.audio;
+        }
+      }
     } else if (mimeType != null) {
+      // Magic number detection returned null (ambiguous case like mp42/isom)
+      // or failed - use MIME type detection
       category = _categoryFromMimeType(mimeType);
+      // If MIME type detection also fails, try one more time with just the filename
+      if (category == FileTypeCategory.unknown && fileName != null && fileName.isNotEmpty) {
+        // Check if filename suggests it's an audio file
+        final lowerFileName = fileName.toLowerCase();
+        if (lowerFileName.endsWith('.m4a') || 
+            lowerFileName.endsWith('.aac') || 
+            lowerFileName.endsWith('.mp3') ||
+            lowerFileName.endsWith('.wav') ||
+            lowerFileName.endsWith('.ogg') ||
+            lowerFileName.endsWith('.flac')) {
+          category = FileTypeCategory.audio;
+          if (mimeType == 'application/octet-stream') {
+            mimeType = 'audio/mp4'; // Default for M4A
+          }
+        }
+      }
     } else {
+      // Both detection methods failed
       category = FileTypeCategory.unknown;
       mimeType = 'application/octet-stream';
     }
@@ -148,15 +177,40 @@ class FileTypeDetector {
         bytes[6] == 0x79 &&
         bytes[7] == 0x70) {
       // Check if it's M4A (audio) or MP4 (video)
-      // M4A files typically have 'M4A ' or 'mp42' in the ftyp box
+      // M4A files can have various brand identifiers in the ftyp box
       if (bytes.length >= 12) {
-        // Check for M4A signature
-        if ((bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41) || // M4A
-            (bytes.length >= 16 && bytes[8] == 0x6D && bytes[9] == 0x70 && 
-             bytes[10] == 0x34 && bytes[11] == 0x32)) { // mp42 (can be audio)
+        // Check for M4A signature (0x4D 0x34 0x41 0x20 = "M4A ")
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x41 && bytes[11] == 0x20) {
           return FileTypeCategory.audio;
         }
+        // Check for M4B signature (0x4D 0x34 0x42 0x20 = "M4B ") - audiobook format
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x42 && bytes[11] == 0x20) {
+          return FileTypeCategory.audio;
+        }
+        // Check for M4P signature (0x4D 0x34 0x50 0x20 = "M4P ") - protected audio
+        if (bytes[8] == 0x4D && bytes[9] == 0x34 && bytes[10] == 0x50 && bytes[11] == 0x20) {
+          return FileTypeCategory.audio;
+        }
+        // Check for mp42 signature (0x6D 0x70 0x34 0x32 = "mp42")
+        // This is commonly used by audio recorders but can also be video
+        // We'll return null to let MIME type detection decide
+        if (bytes[8] == 0x6D && bytes[9] == 0x70 && bytes[10] == 0x34 && bytes[11] == 0x32) {
+          return null; // Let MIME type detection decide
+        }
+        // Check for isom signature (0x69 0x73 0x6F 0x6D = "isom")
+        // ISO Base Media file format - can be audio or video
+        // We'll return null to let MIME type detection decide
+        if (bytes[8] == 0x69 && bytes[9] == 0x73 && bytes[10] == 0x6F && bytes[11] == 0x6D) {
+          return null; // Let MIME type detection decide
+        }
+        // Check for iso2 signature (0x69 0x73 0x6F 0x32 = "iso2")
+        // ISO Base Media file format version 2 - can be audio or video
+        if (bytes[8] == 0x69 && bytes[9] == 0x73 && bytes[10] == 0x6F && bytes[11] == 0x32) {
+          return null; // Let MIME type detection decide
+        }
       }
+      // For other ftyp-based files, default to video
+      // MIME type detection can still override this
       return FileTypeCategory.video;
     }
     

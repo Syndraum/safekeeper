@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
 import '../viewmodels/settings_view_model.dart';
+import 'settings/storage_settings_screen.dart';
+import 'settings/security_settings_screen.dart';
+import 'settings/permissions_settings_screen.dart';
+import 'settings/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,7 +15,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -19,407 +23,201 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _connectGoogleDrive() async {
-    final viewModel = context.read<SettingsViewModel>();
-    final success = await viewModel.connectGoogleDrive();
-    
-    if (mounted) {
-      if (success && viewModel.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.successMessage!),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else if (viewModel.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _connectDropbox() async {
-    final viewModel = context.read<SettingsViewModel>();
-    final success = await viewModel.connectDropbox();
-    
-    if (mounted) {
-      if (success && viewModel.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.successMessage!),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else if (viewModel.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _disconnectGoogleDrive() async {
-    final viewModel = context.read<SettingsViewModel>();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Disconnect Google Drive?'),
-        content: const Text(
-          'This will remove your Google Drive connection. Your files will remain in Google Drive.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Disconnect'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final success = await viewModel.disconnectGoogleDrive();
-      if (mounted && success && viewModel.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.successMessage!),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _disconnectDropbox() async {
-    final viewModel = context.read<SettingsViewModel>();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Disconnect Dropbox?'),
-        content: const Text(
-          'This will remove your Dropbox connection. Your files will remain in Dropbox.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Disconnect'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final success = await viewModel.disconnectDropbox();
-      if (mounted && success && viewModel.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.successMessage!),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _syncAllDocuments() async {
-    final viewModel = context.read<SettingsViewModel>();
-    final success = await viewModel.syncAllDocuments();
-    
-    if (mounted) {
-      if (success && viewModel.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.successMessage!),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else if (viewModel.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _clearCache() async {
-    final viewModel = context.read<SettingsViewModel>();
-    
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Cache?'),
-        content: const Text(
-          'This will delete all temporary decrypted files. This is recommended for security.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final success = await viewModel.clearCache();
-      if (mounted) {
-        if (success && viewModel.successMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(viewModel.successMessage!),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (viewModel.hasError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(viewModel.error!.message),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<SettingsViewModel>();
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cloud Backup Settings'),
+        title: const Text('Settings'),
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing16),
         children: [
-          // Main backup toggle
-          SwitchListTile(
-            title: const Text('Enable Cloud Backup'),
-            subtitle: const Text('Backup encrypted files to cloud storage'),
-            value: viewModel.isBackupEnabled,
-            onChanged: (value) => viewModel.toggleBackup(value),
-          ),
-          const Divider(),
-
-          // Backup options
-          ListTile(
-            title: const Text('Backup Options'),
-            subtitle: const Text('Configure backup behavior'),
-            enabled: viewModel.isBackupEnabled,
-          ),
-          SwitchListTile(
-            title: const Text('Auto Backup'),
-            subtitle: const Text('Automatically backup after upload'),
-            value: viewModel.isAutoBackupEnabled,
-            onChanged: viewModel.isBackupEnabled 
-                ? (value) => viewModel.toggleAutoBackup(value) 
-                : null,
-          ),
-          SwitchListTile(
-            title: const Text('WiFi Only'),
-            subtitle: const Text('Only backup when connected to WiFi'),
-            value: viewModel.isBackupEnabled,
-            onChanged: viewModel.isBackupEnabled 
-                ? (value) async {
-                    // WiFi only toggle - not implemented in ViewModel yet
-                    // Keep this as placeholder
-                  }
-                : null,
-          ),
-          const Divider(),
-
-          // Cloud providers
-          ListTile(
-            title: const Text('Cloud Providers'),
-            subtitle: const Text('Select where to backup your files'),
-            enabled: viewModel.isBackupEnabled,
-          ),
-
-          // Google Drive
-          ListTile(
-            leading: const Icon(Icons.cloud, color: Colors.blue),
-            title: const Text('Google Drive'),
-            subtitle: Text(
-              viewModel.isGoogleDriveAuthenticated ? 'Connected' : 'Not connected',
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing24,
+              vertical: AppTheme.spacing8,
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (viewModel.isGoogleDriveAuthenticated)
-                  Switch(
-                    value: viewModel.isGoogleDriveEnabled,
-                    onChanged: viewModel.isBackupEnabled 
-                        ? (value) {
-                            // Toggle is handled by connect/disconnect
-                          }
-                        : null,
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: viewModel.isBackupEnabled ? _connectGoogleDrive : null,
-                    child: const Text('Connect'),
+                Text(
+                  'Configure your SafeKeeper',
+                  style: AppTheme.heading3,
+                ),
+                const SizedBox(height: AppTheme.spacing8),
+                Text(
+                  'Manage backup, storage, and app settings',
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.neutral600,
                   ),
-                if (viewModel.isGoogleDriveAuthenticated)
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: _disconnectGoogleDrive,
-                    tooltip: 'Disconnect',
-                  ),
+                ),
               ],
             ),
           ),
 
-          // Dropbox
-          ListTile(
-            leading: const Icon(Icons.cloud_queue, color: Colors.indigo),
-            title: const Text('Dropbox'),
-            subtitle: Text(
-              viewModel.isDropboxAuthenticated ? 'Connected' : 'Not connected',
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (viewModel.isDropboxAuthenticated)
-                  Switch(
-                    value: viewModel.isDropboxEnabled,
-                    onChanged: viewModel.isBackupEnabled 
-                        ? (value) {
-                            // Toggle is handled by connect/disconnect
-                          }
-                        : null,
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: viewModel.isBackupEnabled ? _connectDropbox : null,
-                    child: const Text('Connect'),
-                  ),
-                if (viewModel.isDropboxAuthenticated)
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: _disconnectDropbox,
-                    tooltip: 'Disconnect',
-                  ),
-              ],
-            ),
-          ),
-          const Divider(),
+          const SizedBox(height: AppTheme.spacing16),
 
-          // Sync button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              onPressed: viewModel.isBackupEnabled && !viewModel.isBusy
-                  ? _syncAllDocuments
-                  : null,
-              icon: viewModel.isBusy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-              label: Text(viewModel.isBusy ? 'Syncing...' : 'Sync All Documents'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-            ),
+          // Backup & Sync Settings - Coming Soon
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.cloud_sync_rounded,
+            iconColor: AppTheme.neutral400,
+            title: 'Backup & Sync',
+            subtitle: 'Coming soon',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cloud backup feature coming soon!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
           ),
 
-          // Cache Management Section
-          const Divider(),
-          ListTile(
-            title: const Text('Cache Management'),
-            subtitle: const Text('Manage temporary decrypted files'),
+          // Cloud Providers - Coming Soon
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.cloud_rounded,
+            iconColor: AppTheme.neutral400,
+            title: 'Cloud Providers',
+            subtitle: 'Coming soon',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cloud providers feature coming soon!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
           ),
-          ListTile(
-            leading: const Icon(Icons.storage, color: Colors.orange),
-            title: const Text('Cache Size'),
-            subtitle: Text(viewModel.cacheSize),
-            trailing: ElevatedButton.icon(
-              onPressed: !viewModel.isBusy ? _clearCache : null,
-              icon: const Icon(Icons.delete_sweep, size: 20),
-              label: const Text('Clear Cache'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[400],
-                foregroundColor: Colors.white,
-              ),
-            ),
+
+          // Storage & Cache
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.storage_rounded,
+            iconColor: AppTheme.warning,
+            title: 'Storage & Cache',
+            subtitle: 'Cache size: ${viewModel.cacheSize}',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StorageSettingsScreen(),
+                ),
+              );
+            },
           ),
+
+          const SizedBox(height: AppTheme.spacing8),
+
+          // Security
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.security_rounded,
+            iconColor: AppTheme.success,
+            title: 'Security',
+            subtitle: 'Manage master password',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SecuritySettingsScreen(),
+                ),
+              );
+            },
+          ),
+
+          // Permissions
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.admin_panel_settings_rounded,
+            iconColor: AppTheme.secondary,
+            title: 'Permissions',
+            subtitle: 'Manage app permissions',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PermissionsSettingsScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: AppTheme.spacing8),
+
+          // About
+          _buildSettingsTile(
+            context: context,
+            icon: Icons.info_rounded,
+            iconColor: AppTheme.primary,
+            title: 'About',
+            subtitle: 'App information and security details',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AboutScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: AppTheme.spacing24),
+
+          // Quick info card
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Card(
-              color: Colors.orange[50],
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: const [
-                    Icon(Icons.security, color: Colors.orange, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'For security, cache is automatically cleared when you lock the app',
-                        style: TextStyle(fontSize: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.05),
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              padding: const EdgeInsets.all(AppTheme.spacing16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: AppTheme.primary,
+                        size: 20,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Info card
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.info_outline, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text(
-                          'About Cloud Backup',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      const SizedBox(width: AppTheme.spacing8),
+                      Text(
+                        'Coming Soon',
+                        style: AppTheme.heading6.copyWith(
+                          color: AppTheme.primary,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '• Your files are encrypted before upload\n'
-                      '• Only encrypted data is stored in the cloud\n'
-                      '• You can backup to multiple providers\n'
-                      '• Backups happen automatically after upload\n'
-                      '• You can manually sync at any time',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacing12),
+                  _buildStatusItem(
+                    icon: Icons.cloud_upload_rounded,
+                    text: 'Cloud backup to Google Drive & Dropbox',
+                    color: AppTheme.primary,
+                  ),
+                  _buildStatusItem(
+                    icon: Icons.sync_rounded,
+                    text: 'Automatic synchronization',
+                    color: AppTheme.primary,
+                  ),
+                  _buildStatusItem(
+                    icon: Icons.security_rounded,
+                    text: 'End-to-end encrypted backups',
+                    color: AppTheme.primary,
+                  ),
+                ],
               ),
             ),
           ),
@@ -427,4 +225,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Widget _buildSettingsTile({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing4,
+      ),
+      decoration: AppTheme.cardDecoration,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppTheme.borderRadiusMedium,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacing16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing12),
+                  decoration: AppTheme.iconContainerDecoration(iconColor),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: AppTheme.spacing16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTheme.heading6,
+                      ),
+                      const SizedBox(height: AppTheme.spacing4),
+                      Text(
+                        subtitle,
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.neutral400,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusItem({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: AppTheme.spacing8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTheme.bodySmall.copyWith(
+                color: AppTheme.neutral700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

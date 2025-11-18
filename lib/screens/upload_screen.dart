@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
 import '../viewmodels/upload_view_model.dart';
+import '../viewmodels/document_list_view_model.dart';
 import '../widgets/vocal_memo_recorder.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -60,7 +62,7 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -82,9 +84,12 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.success,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       }
       return;
     }
@@ -104,14 +109,17 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.success,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error?.message ?? 'Failed to rename document'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -133,7 +141,7 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error!.message),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -155,9 +163,12 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.success,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       }
       return;
     }
@@ -177,14 +188,17 @@ class _UploadScreenState extends State<UploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.success,
           ),
         );
+        
+        // Refresh document list after successful upload
+        _refreshDocumentList();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(viewModel.error?.message ?? 'Failed to rename document'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -193,18 +207,21 @@ class _UploadScreenState extends State<UploadScreen> {
 
   Future<void> _showVocalMemoRecorder() async {
     final viewModel = context.read<UploadViewModel>();
+    // Store the upload screen's context before showing dialog
+    final uploadScreenContext = context;
     
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => VocalMemoRecorder(
+      builder: (dialogContext) => VocalMemoRecorder(
         onRecordingComplete: (filePath) async {
-          Navigator.of(context).pop();
+          // Close the dialog first
+          Navigator.of(dialogContext).pop();
           
           // Generate default name
           String defaultName = viewModel.generateVocalMemoName();
           
-          // Show rename dialog
+          // Show rename dialog using the upload screen's context
           String? fileName = await _showRenameDialog(defaultName);
           if (fileName != null && mounted) {
             final result = await viewModel.uploadVocalMemo(filePath, fileName);
@@ -218,17 +235,20 @@ class _UploadScreenState extends State<UploadScreen> {
                   message += '\nBackup started...';
                 }
                 
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
                   SnackBar(
                     content: Text(message),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppTheme.success,
                   ),
                 );
+                
+                // Refresh document list after successful upload
+                _refreshDocumentList();
               } else if (viewModel.hasError) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
                   SnackBar(
                     content: Text(viewModel.error!.message),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppTheme.error,
                   ),
                 );
               }
@@ -236,12 +256,12 @@ class _UploadScreenState extends State<UploadScreen> {
           }
         },
         onError: (error) {
-          Navigator.of(context).pop();
+          Navigator.of(dialogContext).pop();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(uploadScreenContext).showSnackBar(
               SnackBar(
                 content: Text(error),
-                backgroundColor: Colors.red,
+                backgroundColor: AppTheme.error,
               ),
             );
           }
@@ -250,64 +270,164 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
+  /// Refresh the document list view model
+  void _refreshDocumentList() {
+    try {
+      // Use post frame callback to avoid calling during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          try {
+            context.read<DocumentListViewModel>().loadDocuments();
+          } catch (e) {
+            // Silently fail if DocumentListViewModel is not available
+            print('Could not refresh document list: $e');
+          }
+        }
+      });
+    } catch (e) {
+      print('Could not schedule document list refresh: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Document')),
-      body: Center(
+      appBar: AppBar(
+        title: const Text('Add Document'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(AppTheme.spacing24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ElevatedButton.icon(
-                onPressed: _takePictureAndUpload,
-                icon: const Icon(Icons.camera_alt, size: 28),
-                label: const Text(
-                  'Take a Photo',
-                  style: TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                  minimumSize: const Size(double.infinity, 60),
+              // Header section
+              Text(
+                'Upload Your Documents',
+                style: AppTheme.heading3,
+              ),
+              const SizedBox(height: AppTheme.spacing8),
+              Text(
+                'Choose how you want to add your secure documents',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.neutral600,
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _showVocalMemoRecorder,
-                icon: const Icon(Icons.mic, size: 28),
-                label: const Text(
-                  'Record Vocal Memo',
-                  style: TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                  minimumSize: const Size(double.infinity, 60),
+              const SizedBox(height: AppTheme.spacing48),
+              
+              // Upload options
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildUploadButton(
+                      icon: Icons.camera_alt_rounded,
+                      label: 'Take a Photo',
+                      description: 'Capture documents with your camera',
+                      onPressed: _takePictureAndUpload,
+                    ),
+                    const SizedBox(height: AppTheme.spacing16),
+                    _buildUploadButton(
+                      icon: Icons.mic_rounded,
+                      label: 'Record Vocal Memo',
+                      description: 'Record audio notes securely',
+                      onPressed: _showVocalMemoRecorder,
+                    ),
+                    const SizedBox(height: AppTheme.spacing16),
+                    _buildUploadButton(
+                      icon: Icons.folder_open_rounded,
+                      label: 'Select a File',
+                      description: 'Choose from your device storage',
+                      onPressed: _pickAndUploadFile,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _pickAndUploadFile,
-                icon: const Icon(Icons.folder_open, size: 28),
-                label: const Text(
-                  'Select a File',
-                  style: TextStyle(fontSize: 16),
+              
+              // Info footer
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacing16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.05),
+                  borderRadius: AppTheme.borderRadiusMedium,
                 ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                  minimumSize: const Size(double.infinity, 60),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_rounded,
+                      size: 20,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: AppTheme.spacing12),
+                    Expanded(
+                      child: Text(
+                        'All files are encrypted before storage',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.neutral700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildUploadButton({
+    required IconData icon,
+    required String label,
+    required String description,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: AppTheme.cardDecoration,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppTheme.borderRadiusMedium,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacing16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing12),
+                  decoration: AppTheme.iconContainerDecoration(AppTheme.primary),
+                  child: Icon(
+                    icon,
+                    size: 32,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacing16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: AppTheme.heading6,
+                      ),
+                      const SizedBox(height: AppTheme.spacing4),
+                      Text(
+                        description,
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.neutral400,
+                ),
+              ],
+            ),
           ),
         ),
       ),

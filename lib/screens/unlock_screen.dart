@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
 import '../viewmodels/auth_view_model.dart';
+import '../services/recording_service.dart';
+import '../services/cache_service.dart';
+import '../widgets/emergency_button_widget.dart';
+import '../screens/panic_lock_screen.dart';
 
-/// Écran de déverrouillage pour accéder aux documents
+/// Unlock screen to access documents
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key});
 
@@ -12,22 +18,116 @@ class UnlockScreen extends StatefulWidget {
 
 class _UnlockScreenState extends State<UnlockScreen> {
   final _passwordController = TextEditingController();
+  final _recordingService = RecordingService();
+  final _cacheService = CacheService();
 
   bool _isPasswordVisible = false;
   int _failedAttempts = 0;
+  bool _isRecording = false;
+  bool _isPanicLocked = false;
+  StreamSubscription<bool>? _recordingStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Listen to recording state changes
+    _recordingStateSubscription = _recordingService.recordingStateStream.listen((isRecording) {
+      if (mounted) {
+        setState(() {
+          _isRecording = isRecording;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _recordingStateSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _handlePanic() async {
+    // Clear cache for security
+    await _cacheService.clearAllCache();
+    
+    // Show panic lock screen overlay
+    setState(() {
+      _isPanicLocked = true;
+    });
+  }
+
+  Future<void> _handleUnlockFromPanic(String password) async {
+    final viewModel = context.read<AuthViewModel>();
+    final success = await viewModel.verifyPassword(password);
+    
+    if (success) {
+      // Password correct - dismiss panic lock
+      if (mounted) {
+        setState(() {
+          _isPanicLocked = false;
+        });
+      }
+    } else {
+      // Password incorrect - throw error to be caught by PanicLockScreen
+      throw Exception('Incorrect password');
+    }
+  }
+
+  Future<void> _handleEmergencyRecording() async {
+    if (_isRecording) {
+      // Stop recording
+      final path = await _recordingService.stopRecording();
+      if (path != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Emergency recording saved'),
+              backgroundColor: AppTheme.success,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save recording'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } else {
+      // Check permissions first
+      final hasPermissions = await _recordingService.checkPermissions();
+      if (!hasPermissions && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera and microphone permissions required'),
+            backgroundColor: AppTheme.warning,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // Start recording
+      final success = await _recordingService.startRecording();
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to start recording'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _unlock() async {
     if (_passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez entrer votre mot de passe'),
-          backgroundColor: Colors.orange,
+          content: Text('Please enter your password'),
+          backgroundColor: AppTheme.warning,
         ),
       );
       return;
@@ -39,10 +139,10 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
     if (mounted) {
       if (success) {
-        // Mot de passe correct - naviguer vers l'écran principal
+        // Correct password - navigate to main screen
         Navigator.of(context).pushReplacementNamed('/');
       } else {
-        // Mot de passe incorrect
+        // Incorrect password
         setState(() {
           _failedAttempts++;
         });
@@ -52,16 +152,16 @@ class _UnlockScreenState extends State<UnlockScreen> {
         // Show error from ViewModel or default message
         final errorMessage = viewModel.hasError
             ? viewModel.error!.message
-            : 'Mot de passe incorrect (${_failedAttempts} tentative${_failedAttempts > 1 ? 's' : ''})';
+            : 'Incorrect password (${_failedAttempts} attempt${_failedAttempts > 1 ? 's' : ''})';
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
 
-        // Ajouter un délai après plusieurs tentatives échouées
+        // Add delay after multiple failed attempts
         if (_failedAttempts >= 3) {
           await Future.delayed(const Duration(seconds: 2));
         }
@@ -73,94 +173,88 @@ class _UnlockScreenState extends State<UnlockScreen> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthViewModel>();
     
-    return Scaffold(
+    return Stack(
+      children: [
+        // Main unlock screen
+        Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).primaryColor,
-              Theme.of(context).primaryColor.withOpacity(0.7),
+              AppTheme.primary,
+              AppTheme.primaryDark,
             ],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(AppTheme.spacing24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icône
+                  // Logo/Icon
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(AppTheme.spacing24),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                      boxShadow: AppTheme.shadowLarge,
                     ),
                     child: Icon(
-                      Icons.lock_outline,
+                      Icons.lock_outline_rounded,
                       size: 64,
-                      color: Theme.of(context).primaryColor,
+                      color: AppTheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppTheme.spacing32),
 
-                  // Titre
-                  const Text(
+                  // Title
+                  Text(
                     'SafeKeeper',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                    style: AppTheme.heading1.copyWith(
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppTheme.spacing8),
 
-                  // Sous-titre
+                  // Subtitle
                   Text(
-                    'Entrez votre mot de passe pour accéder à vos documents',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                    'Enter your password to access your documents',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.95),
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppTheme.spacing48),
 
-                  // Carte de saisie
+                  // Input card
                   Card(
-                    elevation: 8,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppTheme.borderRadiusLarge,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.all(AppTheme.spacing24),
                       child: Column(
                         children: [
-                          // Champ mot de passe
+                          // Password field
                           TextField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
                             autofocus: true,
                             onSubmitted: (_) => _unlock(),
                             decoration: InputDecoration(
-                              labelText: 'Mot de passe',
-                              hintText: 'Entrez votre mot de passe',
-                              prefixIcon: const Icon(Icons.lock),
+                              labelText: 'Password',
+                              hintText: 'Enter your password',
+                              prefixIcon: const Icon(Icons.lock_rounded),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _isPasswordVisible
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -168,29 +262,15 @@ class _UnlockScreenState extends State<UnlockScreen> {
                                   });
                                 },
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: AppTheme.spacing24),
 
-                          // Bouton de déverrouillage
+                          // Unlock button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: viewModel.isBusy ? null : _unlock,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
-                              ),
                               child: viewModel.isBusy
                                   ? const SizedBox(
                                       height: 20,
@@ -207,46 +287,35 @@ class _UnlockScreenState extends State<UnlockScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.lock_open),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Déverrouiller',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                        Icon(Icons.lock_open_rounded),
+                                        SizedBox(width: AppTheme.spacing8),
+                                        Text('Unlock'),
                                       ],
                                     ),
                             ),
                           ),
 
-                          // Indicateur de tentatives échouées
+                          // Failed attempts indicator
                           if (_failedAttempts > 0) ...[
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppTheme.spacing16),
                             Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red[200]!),
-                              ),
+                              padding: const EdgeInsets.all(AppTheme.spacing12),
+                              decoration: AppTheme.errorContainerDecoration,
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.warning_amber,
-                                    color: Colors.red[700],
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: AppTheme.error,
                                     size: 20,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: AppTheme.spacing8),
                                   Expanded(
                                     child: Text(
                                       _failedAttempts == 1
-                                          ? 'Mot de passe incorrect'
-                                          : '$_failedAttempts tentatives échouées',
-                                      style: TextStyle(
-                                        color: Colors.red[700],
-                                        fontSize: 12,
+                                          ? 'Incorrect password'
+                                          : '$_failedAttempts failed attempts',
+                                      style: AppTheme.bodySmall.copyWith(
+                                        color: AppTheme.error,
                                       ),
                                     ),
                                   ),
@@ -258,29 +327,57 @@ class _UnlockScreenState extends State<UnlockScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppTheme.spacing24),
 
-                  // Note de sécurité
+                  // Emergency buttons
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8),
+                    child: Row(
+                      children: [
+                        // Panic Button
+                        EmergencyButtonWidget(
+                          icon: Icons.warning_rounded,
+                          label: 'SOS',
+                          onPressed: _handlePanic,
+                          isPulsingRed: true,
+                        ),
+
+                        // Emergency Recording Button
+                        EmergencyButtonWidget(
+                          icon: _isRecording ? Icons.stop : Icons.videocam,
+                          label: _isRecording ? 'STOP' : 'RECORD',
+                          onPressed: _handleEmergencyRecording,
+                          isPulsingRed: _isRecording,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing24),
+
+                  // Security note
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.spacing16),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppTheme.borderRadiusMedium,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.info_outline,
-                          color: Colors.white.withOpacity(0.9),
+                          Icons.shield_outlined,
+                          color: Colors.white.withOpacity(0.95),
                           size: 20,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppTheme.spacing12),
                         Expanded(
                           child: Text(
-                            'Vos documents sont protégés par un chiffrement de niveau militaire',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 12,
+                            'Your documents are protected by military-grade encryption',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: Colors.white.withOpacity(0.95),
                             ),
                           ),
                         ),
@@ -293,6 +390,32 @@ class _UnlockScreenState extends State<UnlockScreen> {
           ),
         ),
       ),
+        ),
+        
+        // Panic lock screen overlay (blocks everything when active)
+        if (_isPanicLocked)
+          Positioned.fill(
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color.fromARGB(255, 36, 77, 124),
+                ),
+                useMaterial3: true,
+              ),
+              home: PanicLockScreen(
+                onUnlock: _handleUnlockFromPanic,
+                onUnlockSuccess: () {
+                  if (mounted) {
+                    setState(() {
+                      _isPanicLocked = false;
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

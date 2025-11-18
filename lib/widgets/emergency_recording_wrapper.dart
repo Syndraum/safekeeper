@@ -1,22 +1,31 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:camera/camera.dart';
 import '../services/recording_service.dart';
 import '../services/encryption_service.dart';
 import '../services/document_service.dart';
 import '../services/file_type_detector.dart';
 import '../viewmodels/home_view_model.dart';
+import '../viewmodels/document_list_view_model.dart';
 import '../screens/panic_lock_screen.dart';
-import 'emergency_recording_button.dart';
-import 'panic_button.dart';
 
 /// Global wrapper that adds emergency recording functionality to all screens
+/// Now works with the new bottom navigation design
 class EmergencyRecordingWrapper extends StatefulWidget {
   final Widget child;
+  final Function(VoidCallback)? onPanicCallback;
+  final Function(VoidCallback)? onRecordingCallback;
+  final GlobalKey<ScaffoldMessengerState>? scaffoldMessengerKey;
 
-  const EmergencyRecordingWrapper({super.key, required this.child});
+  const EmergencyRecordingWrapper({
+    super.key,
+    required this.child,
+    this.onPanicCallback,
+    this.onRecordingCallback,
+    this.scaffoldMessengerKey,
+  });
 
   @override
   State<EmergencyRecordingWrapper> createState() =>
@@ -29,6 +38,25 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
   final _documentService = DocumentService();
   bool _isProcessing = false;
   bool _isPanicLocked = false;
+  bool _isRecording = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to recording state changes
+    _recordingService.recordingStateStream.listen((isRecording) {
+      if (mounted) {
+        setState(() {
+          _isRecording = isRecording;
+        });
+      }
+    });
+    // Register callbacks for emergency actions after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onPanicCallback?.call(_onPanicPressed);
+      widget.onRecordingCallback?.call(_toggleRecording);
+    });
+  }
 
   @override
   void dispose() {
@@ -95,7 +123,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
 
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        widget.scaffoldMessengerKey?.currentState?.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -125,6 +153,9 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        
+        // Refresh document list after successful save
+        _refreshDocumentList();
       }
     } catch (e) {
       print('Error processing recording: $e');
@@ -142,7 +173,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
   void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    widget.scaffoldMessengerKey?.currentState?.showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -156,6 +187,36 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  /// Handle emergency recording toggle
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      // Stop recording
+      final path = await _recordingService.stopRecording();
+      if (path != null) {
+        await _onRecordingComplete(path);
+      } else {
+        _showError('Failed to save recording');
+      }
+    } else {
+      // Check permissions first
+      final hasPermissions = await _recordingService.checkPermissions();
+      if (!hasPermissions) {
+        _showError(
+          'Camera and microphone permissions are required. Please enable them in settings.',
+        );
+        return;
+      }
+
+      // Start recording
+      final success = await _recordingService.startRecording();
+      if (!success) {
+        _showError(
+          'Failed to start recording. Please check camera and microphone permissions.',
+        );
+      }
+    }
   }
 
   /// Handle panic button press
@@ -189,45 +250,242 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
     }
   }
 
+  /// Refresh the document list view model
+  void _refreshDocumentList() {
+    try {
+      // Use post frame callback to avoid calling during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          try {
+            context.read<DocumentListViewModel>().loadDocuments();
+          } catch (e) {
+            // Silently fail if DocumentListViewModel is not available
+            print('Could not refresh document list: $e');
+          }
+        }
+      });
+    } catch (e) {
+      print('Could not schedule document list refresh: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
+        children: [
         // Main app content
         widget.child,
+
+        // Camera preview overlay when recording (full screen)
+        if (_isRecording &&
+            _recordingService.cameraController != null &&
+            !_isPanicLocked)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: _recordingService.cameraController!.value.isInitialized
+                  ? Stack(
+                      children: [
+                        // Camera preview
+                        Positioned.fill(
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _recordingService
+                                  .cameraController!.value.previewSize!.height,
+                              height: _recordingService
+                                  .cameraController!.value.previewSize!.width,
+                              child: CameraPreview(
+                                  _recordingService.cameraController!),
+                            ),
+                          ),
+                        ),
+                        // Recording indicator overlay
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withOpacity(0.7),
+                                    Colors.transparent
+                                  ],
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: StreamBuilder<Duration>(
+                                      stream: _recordingService.durationStream,
+                                      builder: (context, snapshot) {
+                                        final duration =
+                                            snapshot.data ?? Duration.zero;
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              _formatDuration(duration),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'EMERGENCY RECORDING',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black,
+                                          offset: Offset(0, 1),
+                                          blurRadius: 3,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Stop button overlay at bottom
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Colors.black.withOpacity(0.7),
+                                    Colors.transparent
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Stop button
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _toggleRecording,
+                                        borderRadius: BorderRadius.circular(40),
+                                        child: Container(
+                                          width: 80,
+                                          height: 80,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.5),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.stop,
+                                            size: 40,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Stop label
+                                    const Text(
+                                      'TAP TO STOP',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black,
+                                            offset: Offset(0, 1),
+                                            blurRadius: 3,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Center(child: CircularProgressIndicator()),
+            ),
+          ),
 
         // Panic lock screen overlay (blocks everything when active)
         if (_isPanicLocked)
           Positioned.fill(
-            child: Overlay(
-              initialEntries: [
-                OverlayEntry(
-                  builder: (context) => PanicLockScreen(
-                    onUnlock: _onUnlockAttempt,
-                    onUnlockSuccess: () {
-                      if (mounted) {
-                        setState(() {
-                          _isPanicLocked = false;
-                        });
-                      }
-                    },
-                  ),
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color.fromARGB(255, 36, 77, 124),
                 ),
-              ],
+                useMaterial3: true,
+              ),
+              home: PanicLockScreen(
+                onUnlock: _onUnlockAttempt,
+                onUnlockSuccess: () {
+                  if (mounted) {
+                    setState(() {
+                      _isPanicLocked = false;
+                    });
+                  }
+                },
+              ),
             ),
-          ),
-
-        // Emergency recording button overlay (bottom right)
-        if (!_isPanicLocked)
-          EmergencyRecordingButton(
-            onRecordingComplete: _onRecordingComplete,
-            onError: _showError,
-          ),
-
-        // Panic button overlay (bottom left)
-        if (!_isPanicLocked)
-          PanicButton(
-            onPanic: _onPanicPressed,
           ),
 
         // Processing overlay
@@ -255,7 +513,15 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 }

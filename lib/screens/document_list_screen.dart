@@ -313,6 +313,58 @@ class _DocumentListScreenState extends State<DocumentListScreen>
     );
   }
 
+  /// Get appropriate empty state message based on active filters
+  String _getEmptyStateMessage(DocumentListViewModel viewModel) {
+    final hasSearch = viewModel.searchQuery.isNotEmpty;
+    final hasTypeFilter = viewModel.selectedFileType != null;
+    
+    if (hasSearch && hasTypeFilter) {
+      // Both filters active
+      final fileTypeName = _getFileTypeName(viewModel.selectedFileType!);
+      return 'No $fileTypeName found for "${viewModel.searchQuery}"';
+    } else if (hasTypeFilter) {
+      // Only file type filter active
+      final fileTypeName = _getFileTypeName(viewModel.selectedFileType!);
+      return 'No $fileTypeName found';
+    } else if (hasSearch) {
+      // Only search query active
+      return 'No documents found for "${viewModel.searchQuery}"';
+    } else {
+      // No filters active (shouldn't reach here, but fallback)
+      return 'No documents found';
+    }
+  }
+
+  /// Get human-readable file type name
+  String _getFileTypeName(FileTypeCategory fileType) {
+    switch (fileType) {
+      case FileTypeCategory.pdf:
+        return 'PDF documents';
+      case FileTypeCategory.image:
+        return 'images';
+      case FileTypeCategory.video:
+        return 'videos';
+      case FileTypeCategory.audio:
+        return 'audio files';
+      case FileTypeCategory.document:
+        return 'documents';
+      case FileTypeCategory.archive:
+        return 'archives';
+      case FileTypeCategory.text:
+        return 'text files';
+      default:
+        return 'documents';
+    }
+  }
+
+  /// Get appropriate icon for empty state based on active filters
+  IconData _getEmptyStateIcon(DocumentListViewModel viewModel) {
+    if (viewModel.selectedFileType != null) {
+      return Icons.filter_list_off;
+    }
+    return Icons.search_off;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -330,29 +382,35 @@ class _DocumentListScreenState extends State<DocumentListScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(72.0),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spacing16,
-              AppTheme.spacing8,
-              AppTheme.spacing16,
-              AppTheme.spacing16,
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search documents...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
+          preferredSize: const Size.fromHeight(128.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spacing16,
+                  AppTheme.spacing8,
+                  AppTheme.spacing16,
+                  AppTheme.spacing4,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search documents...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: AppTheme.spacing12),
+              _buildFileTypeFilters(),
+            ],
           ),
         ),
       ),
@@ -366,16 +424,17 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.search_off,
+                            _getEmptyStateIcon(viewModel),
                             size: 64,
                             color: AppTheme.neutral400,
                           ),
                           const SizedBox(height: AppTheme.spacing16),
                           Text(
-                            'No documents found for "${viewModel.searchQuery}"',
+                            _getEmptyStateMessage(viewModel),
                             style: AppTheme.bodyMedium.copyWith(
                               color: AppTheme.neutral500,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
@@ -514,4 +573,186 @@ class _DocumentListScreenState extends State<DocumentListScreen>
       ),
     );
   }
+
+  Widget _buildFileTypeFilters() {
+    final viewModel = context.watch<DocumentListViewModel>();
+    
+    final filters = [
+      _FilterOption(
+        label: 'All',
+        icon: Icons.folder_outlined,
+        fileType: null,
+        count: viewModel.getFileTypeCount(null),
+      ),
+      _FilterOption(
+        label: 'PDFs',
+        icon: Icons.picture_as_pdf,
+        fileType: FileTypeCategory.pdf,
+        count: viewModel.getFileTypeCount(FileTypeCategory.pdf),
+      ),
+      _FilterOption(
+        label: 'Images',
+        icon: Icons.image,
+        fileType: FileTypeCategory.image,
+        count: viewModel.getFileTypeCount(FileTypeCategory.image),
+      ),
+      _FilterOption(
+        label: 'Videos',
+        icon: Icons.video_file,
+        fileType: FileTypeCategory.video,
+        count: viewModel.getFileTypeCount(FileTypeCategory.video),
+      ),
+      _FilterOption(
+        label: 'Audio',
+        icon: Icons.audio_file,
+        fileType: FileTypeCategory.audio,
+        count: viewModel.getFileTypeCount(FileTypeCategory.audio),
+      ),
+      _FilterOption(
+        label: 'Documents',
+        icon: Icons.description,
+        fileType: FileTypeCategory.document,
+        count: viewModel.getFileTypeCount(FileTypeCategory.document),
+      ),
+      _FilterOption(
+        label: 'Archives',
+        icon: Icons.folder_zip,
+        fileType: FileTypeCategory.archive,
+        count: viewModel.getFileTypeCount(FileTypeCategory.archive),
+      ),
+      _FilterOption(
+        label: 'Text',
+        icon: Icons.text_snippet,
+        fileType: FileTypeCategory.text,
+        count: viewModel.getFileTypeCount(FileTypeCategory.text),
+      ),
+    ];
+
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.spacing16,
+          0,
+          AppTheme.spacing16,
+          AppTheme.spacing12,
+        ),
+        itemCount: filters.length,
+        separatorBuilder: (context, index) => const SizedBox(width: AppTheme.spacing8),
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          final isSelected = viewModel.selectedFileType == filter.fileType;
+          
+          return _buildFilterChip(
+            label: filter.label,
+            icon: filter.icon,
+            count: filter.count,
+            isSelected: isSelected,
+            onTap: () {
+              viewModel.updateFileTypeFilter(filter.fileType);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    required int count,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing12,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? AppTheme.primary 
+                : AppTheme.neutral100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected 
+                  ? AppTheme.primary 
+                  : AppTheme.neutral200,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected 
+                    ? Colors.white 
+                    : AppTheme.neutral700,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTheme.bodySmall.copyWith(
+                  color: isSelected 
+                      ? Colors.white 
+                      : AppTheme.neutral700,
+                  fontWeight: isSelected 
+                      ? FontWeight.w600 
+                      : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? Colors.white.withOpacity(0.2) 
+                        : AppTheme.neutral200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    count.toString(),
+                    style: TextStyle(
+                      color: isSelected 
+                          ? Colors.white 
+                          : AppTheme.neutral600,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOption {
+  final String label;
+  final IconData icon;
+  final FileTypeCategory? fileType;
+  final int count;
+
+  _FilterOption({
+    required this.label,
+    required this.icon,
+    required this.fileType,
+    required this.count,
+  });
 }

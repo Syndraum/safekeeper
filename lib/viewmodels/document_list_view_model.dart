@@ -19,6 +19,7 @@ class DocumentListViewModel extends BaseViewModel {
   List<Map<String, dynamic>> _documents = [];
   List<Map<String, dynamic>> _filteredDocuments = [];
   String _searchQuery = '';
+  FileTypeCategory? _selectedFileType;
 
   DocumentListViewModel({
     required DocumentService documentService,
@@ -33,8 +34,10 @@ class DocumentListViewModel extends BaseViewModel {
   // Getters
   List<Map<String, dynamic>> get documents => _filteredDocuments;
   String get searchQuery => _searchQuery;
+  FileTypeCategory? get selectedFileType => _selectedFileType;
   bool get hasDocuments => _documents.isNotEmpty;
   bool get hasFilteredDocuments => _filteredDocuments.isNotEmpty;
+  bool get hasActiveFilters => _searchQuery.isNotEmpty || _selectedFileType != null;
 
   /// Initialize and load documents
   Future<void> initialize() async {
@@ -59,6 +62,13 @@ class DocumentListViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Update file type filter and filter documents
+  void updateFileTypeFilter(FileTypeCategory? fileType) {
+    _selectedFileType = fileType;
+    _filterDocuments();
+    notifyListeners();
+  }
+
   /// Clear search query
   void clearSearch() {
     _searchQuery = '';
@@ -66,16 +76,46 @@ class DocumentListViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  /// Filter documents based on search query
+  /// Clear all filters
+  void clearAllFilters() {
+    _searchQuery = '';
+    _selectedFileType = null;
+    _filterDocuments();
+    notifyListeners();
+  }
+
+  /// Filter documents based on search query and file type
   void _filterDocuments() {
-    if (_searchQuery.isEmpty) {
-      _filteredDocuments = List.from(_documents);
-    } else {
-      _filteredDocuments = _documents.where((doc) {
+    _filteredDocuments = _documents.where((doc) {
+      // Filter by search query
+      if (_searchQuery.isNotEmpty) {
         final name = doc['name'].toString().toLowerCase();
-        return name.contains(_searchQuery);
-      }).toList();
+        if (!name.contains(_searchQuery)) {
+          return false;
+        }
+      }
+
+      // Filter by file type
+      if (_selectedFileType != null) {
+        final fileType = doc['file_type'];
+        if (fileType == null || fileType != _selectedFileType!.name) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
+  /// Get count of documents for a specific file type
+  int getFileTypeCount(FileTypeCategory? fileType) {
+    if (fileType == null) {
+      return _documents.length;
     }
+    return _documents.where((doc) {
+      final docFileType = doc['file_type'];
+      return docFileType != null && docFileType == fileType.name;
+    }).length;
   }
 
   /// Rename a document

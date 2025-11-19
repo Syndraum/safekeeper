@@ -173,10 +173,13 @@ class _UnlockScreenState extends State<UnlockScreen> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthViewModel>();
     
-    return Stack(
-      children: [
-        // Main unlock screen
-        Scaffold(
+    return WillPopScope(
+      // Prevent back button from bypassing the unlock screen
+      onWillPop: () async => false,
+      child: Stack(
+        children: [
+          // Main unlock screen
+          Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -389,33 +392,34 @@ class _UnlockScreenState extends State<UnlockScreen> {
             ),
           ),
         ),
-      ),
         ),
-        
-        // Panic lock screen overlay (blocks everything when active)
-        if (_isPanicLocked)
-          Positioned.fill(
-            child: MaterialApp(
-              debugShowCheckedModeBanner: false,
-              theme: ThemeData(
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color.fromARGB(255, 36, 77, 124),
+          ),
+          
+          // Panic lock screen overlay (blocks everything when active)
+          if (_isPanicLocked)
+            Positioned.fill(
+              child: MaterialApp(
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color.fromARGB(255, 36, 77, 124),
+                  ),
+                  useMaterial3: true,
                 ),
-                useMaterial3: true,
-              ),
-              home: PanicLockScreen(
-                onUnlock: _handleUnlockFromPanic,
-                onUnlockSuccess: () {
-                  if (mounted) {
-                    setState(() {
-                      _isPanicLocked = false;
-                    });
-                  }
-                },
+                home: PanicLockScreen(
+                  onUnlock: _handleUnlockFromPanic,
+                  onUnlockSuccess: () {
+                    if (mounted) {
+                      setState(() {
+                        _isPanicLocked = false;
+                      });
+                    }
+                  },
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -240,10 +240,10 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                       Colors.transparent,
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                     ],
                     stops: const [0.0, 0.3, 0.7, 1.0],
                   ),
@@ -277,7 +277,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     Center(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -325,7 +325,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                                           : 1.0,
                                       onChanged: _onSeek,
                                       activeColor: Colors.red,
-                                      inactiveColor: Colors.white.withOpacity(0.3),
+                                      inactiveColor: Colors.white.withValues(alpha: 0.3),
                                     ),
                                   ),
                                 ),
@@ -374,7 +374,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                                             _videoPlayerService.setVolume(value);
                                           },
                                           activeColor: Colors.white,
-                                          inactiveColor: Colors.white.withOpacity(0.3),
+                                          inactiveColor: Colors.white.withValues(alpha: 0.3),
                                         ),
                                       ),
                                     ),

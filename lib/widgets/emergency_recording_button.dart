@@ -143,7 +143,7 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                    colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
                   ),
                 ),
                 child: Column(
@@ -159,7 +159,7 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -258,7 +258,7 @@ class _EmergencyRecordingButtonState extends State<EmergencyRecordingButton>
                         letterSpacing: 1.2,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.8),
+                            color: Colors.black.withValues(alpha: 0.8),
                             offset: const Offset(0, 1),
                             blurRadius: 3,
                           ),

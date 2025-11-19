@@ -77,7 +77,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
         _passwordController.clear();
         _shakeController.forward(from: 0);
         
-        _showError('Incorrect password (${_failedAttempts} attempt${_failedAttempts > 1 ? 's' : ''})');
+        _showError('Incorrect password ($_failedAttempts attempt${_failedAttempts > 1 ? 's' : ''})');
         
         // Add delay after multiple failed attempts
         if (_failedAttempts >= 3) {
@@ -103,7 +103,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
       // Prevent back button from dismissing the lock screen
       onWillPop: () async => false,
       child: Scaffold(
-        backgroundColor: Colors.black.withOpacity(0.95),
+        backgroundColor: Colors.black.withValues(alpha: 0.95),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -130,7 +130,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                           child: Container(
                             padding: const EdgeInsets.all(AppTheme.spacing32),
                             decoration: BoxDecoration(
-                              color: AppTheme.error.withOpacity(0.15),
+                              color: AppTheme.error.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: AppTheme.error,
@@ -138,7 +138,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.error.withOpacity(0.3),
+                                  color: AppTheme.error.withValues(alpha: 0.3),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),
@@ -189,7 +189,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: AppTheme.borderRadiusLarge,
                         side: BorderSide(
-                          color: AppTheme.error.withOpacity(0.3),
+                          color: AppTheme.error.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -234,7 +234,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: AppTheme.borderRadiusMedium,
                                   borderSide: BorderSide(
-                                    color: AppTheme.error.withOpacity(0.5),
+                                    color: AppTheme.error.withValues(alpha: 0.5),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -245,7 +245,7 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                                   ),
                                 ),
                                 filled: true,
-                                fillColor: Colors.black.withOpacity(0.3),
+                                fillColor: Colors.black.withValues(alpha: 0.3),
                               ),
                             ),
                             const SizedBox(height: AppTheme.spacing24),
@@ -334,10 +334,10 @@ class _PanicLockScreenState extends State<PanicLockScreen>
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacing16),
                       decoration: BoxDecoration(
-                        color: AppTheme.error.withOpacity(0.1),
+                        color: AppTheme.error.withValues(alpha: 0.1),
                         borderRadius: AppTheme.borderRadiusMedium,
                         border: Border.all(
-                          color: AppTheme.error.withOpacity(0.3),
+                          color: AppTheme.error.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(

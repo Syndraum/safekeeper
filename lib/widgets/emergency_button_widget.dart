@@ -26,14 +26,14 @@ class EmergencyButtonWidget extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             borderRadius: BorderRadius.circular(12),
-            splashColor: Colors.red.withOpacity(0.15),
-            highlightColor: Colors.red.withOpacity(0.08),
+            splashColor: Colors.red.withValues(alpha: 0.15),
+            highlightColor: Colors.red.withValues(alpha: 0.08),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: isPulsingRed 
                     ? Colors.red.shade50
-                    : Colors.red.shade50.withOpacity(0.5),
+                    : Colors.red.shade50.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isPulsingRed 
@@ -44,8 +44,8 @@ class EmergencyButtonWidget extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: isPulsingRed 
-                        ? Colors.red.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.05),
+                        ? Colors.red.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.05),
                     blurRadius: isPulsingRed ? 6 : 3,
                     spreadRadius: 0,
                   ),

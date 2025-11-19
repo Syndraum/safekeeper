@@ -719,7 +719,7 @@ class _DocumentListScreenState extends State<DocumentListScreen>
                   ),
                   decoration: BoxDecoration(
                     color: isSelected 
-                        ? Colors.white.withOpacity(0.2) 
+                        ? Colors.white.withValues(alpha: 0.2) 
                         : AppTheme.neutral200,
                     borderRadius: BorderRadius.circular(8),
                   ),

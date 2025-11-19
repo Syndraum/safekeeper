@@ -152,7 +152,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
         // Show error from ViewModel or default message
         final errorMessage = viewModel.hasError
             ? viewModel.error!.message
-            : 'Incorrect password (${_failedAttempts} attempt${_failedAttempts > 1 ? 's' : ''})';
+            : 'Incorrect password ($_failedAttempts attempt${_failedAttempts > 1 ? 's' : ''})';
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -227,7 +227,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   Text(
                     'Enter your password to access your documents',
                     style: AppTheme.bodyMedium.copyWith(
-                      color: Colors.white.withOpacity(0.95),
+                      color: Colors.white.withValues(alpha: 0.95),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -361,10 +361,10 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppTheme.spacing16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: AppTheme.borderRadiusMedium,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         width: 1,
                       ),
                     ),
@@ -372,7 +372,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                       children: [
                         Icon(
                           Icons.shield_outlined,
-                          color: Colors.white.withOpacity(0.95),
+                          color: Colors.white.withValues(alpha: 0.95),
                           size: 20,
                         ),
                         const SizedBox(width: AppTheme.spacing12),
@@ -380,7 +380,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                           child: Text(
                             'Your documents are protected by military-grade encryption',
                             style: AppTheme.bodySmall.copyWith(
-                              color: Colors.white.withOpacity(0.95),
+                              color: Colors.white.withValues(alpha: 0.95),
                             ),
                           ),
                         ),

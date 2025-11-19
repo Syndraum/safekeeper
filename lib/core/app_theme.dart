@@ -80,7 +80,7 @@ class AppTheme {
   
   static List<BoxShadow> get shadowSmall => [
     BoxShadow(
-      color: neutral900.withOpacity(0.05),
+      color: neutral900.withValues(alpha: 0.05),
       blurRadius: 4,
       offset: const Offset(0, 2),
     ),
@@ -88,7 +88,7 @@ class AppTheme {
   
   static List<BoxShadow> get shadowMedium => [
     BoxShadow(
-      color: neutral900.withOpacity(0.08),
+      color: neutral900.withValues(alpha: 0.08),
       blurRadius: 8,
       offset: const Offset(0, 4),
     ),
@@ -96,7 +96,7 @@ class AppTheme {
   
   static List<BoxShadow> get shadowLarge => [
     BoxShadow(
-      color: neutral900.withOpacity(0.12),
+      color: neutral900.withValues(alpha: 0.12),
       blurRadius: 16,
       offset: const Offset(0, 8),
     ),
@@ -196,13 +196,11 @@ class AppTheme {
         secondaryContainer: secondaryLight,
         error: error,
         errorContainer: errorLight,
-        background: background,
         surface: surface,
-        surfaceVariant: surfaceVariant,
+        surfaceContainerHighest: surfaceVariant,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onError: Colors.white,
-        onBackground: neutral900,
         onSurface: neutral900,
         onSurfaceVariant: neutral600,
       ),
@@ -227,7 +225,7 @@ class AppTheme {
           borderRadius: borderRadiusMedium,
         ),
         color: surface,
-        shadowColor: neutral900.withOpacity(0.08),
+        shadowColor: neutral900.withValues(alpha: 0.08),
         margin: const EdgeInsets.symmetric(
           horizontal: spacing16,
           vertical: spacing8,
@@ -399,7 +397,7 @@ class AppTheme {
     borderRadius: borderRadiusMedium,
     boxShadow: [
       BoxShadow(
-        color: primary.withOpacity(0.3),
+        color: primary.withValues(alpha: 0.3),
         blurRadius: 8,
         offset: const Offset(0, 4),
       ),
@@ -429,28 +427,28 @@ class AppTheme {
   
   /// Icon container decoration
   static BoxDecoration iconContainerDecoration(Color color) => BoxDecoration(
-    color: color.withOpacity(0.1),
+    color: color.withValues(alpha: 0.1),
     borderRadius: borderRadiusSmall,
   );
   
   /// Success container decoration
   static BoxDecoration get successContainerDecoration => BoxDecoration(
-    color: success.withOpacity(0.1),
+    color: success.withValues(alpha: 0.1),
     borderRadius: borderRadiusMedium,
-    border: Border.all(color: success.withOpacity(0.3), width: 1),
+    border: Border.all(color: success.withValues(alpha: 0.3), width: 1),
   );
   
   /// Warning container decoration
   static BoxDecoration get warningContainerDecoration => BoxDecoration(
-    color: warning.withOpacity(0.1),
+    color: warning.withValues(alpha: 0.1),
     borderRadius: borderRadiusMedium,
-    border: Border.all(color: warning.withOpacity(0.3), width: 1),
+    border: Border.all(color: warning.withValues(alpha: 0.3), width: 1),
   );
   
   /// Error container decoration
   static BoxDecoration get errorContainerDecoration => BoxDecoration(
-    color: error.withOpacity(0.1),
+    color: error.withValues(alpha: 0.1),
     borderRadius: borderRadiusMedium,
-    border: Border.all(color: error.withOpacity(0.3), width: 1),
+    border: Border.all(color: error.withValues(alpha: 0.3), width: 1),
   );
 }

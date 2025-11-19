@@ -147,8 +147,8 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _isRecording
-                          ? Colors.red.withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.1),
+                          ? Colors.red.withValues(alpha: 0.2)
+                          : Colors.grey.withValues(alpha: 0.1),
                       border: Border.all(
                         color: _isRecording ? Colors.red : Colors.grey,
                         width: 3,
@@ -173,7 +173,7 @@ class _VocalMemoRecorderState extends State<VocalMemoRecorder>
               ),
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? AppTheme.error.withOpacity(0.1)
+                    ? AppTheme.error.withValues(alpha: 0.1)
                     : AppTheme.neutral100,
                 borderRadius: AppTheme.borderRadiusXLarge,
               ),

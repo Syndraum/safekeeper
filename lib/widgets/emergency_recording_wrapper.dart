@@ -317,7 +317,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.7),
+                                    Colors.black.withValues(alpha: 0.7),
                                     Colors.transparent
                                   ],
                                 ),
@@ -399,7 +399,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.7),
+                                    Colors.black.withValues(alpha: 0.7),
                                     Colors.transparent
                                   ],
                                 ),
@@ -422,7 +422,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withOpacity(0.5),
+                                                color: Colors.black.withValues(alpha: 0.5),
                                                 blurRadius: 12,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -494,7 +494,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
         if (_isProcessing && !_isPanicLocked)
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: Card(
                   child: Padding(

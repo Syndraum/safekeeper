@@ -1,3 +1,5 @@
+import '../../core/logger_service.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
@@ -64,7 +66,7 @@ class DropboxProvider implements CloudProviderInterface {
         );
       }
     } catch (e) {
-      print('Dropbox authentication error: $e');
+      AppLogger.error('Dropbox authentication error', e);
       return false;
     }
   }
@@ -98,11 +100,11 @@ class DropboxProvider implements CloudProviderInterface {
         
         return true;
       } else {
-        print('Token exchange failed: ${response.body}');
+        AppLogger.error('Token exchange failed: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Token exchange error: $e');
+      AppLogger.error('Token exchange error', e);
       return false;
     }
   }
@@ -138,11 +140,11 @@ class DropboxProvider implements CloudProviderInterface {
         await _settingsService.setDropboxToken(data['access_token']);
         return true;
       } else {
-        print('Token refresh failed: ${response.body}');
+        AppLogger.error('Token refresh failed: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Token refresh error: $e');
+      AppLogger.error('Token refresh error', e);
       return false;
     }
   }
@@ -177,10 +179,10 @@ class DropboxProvider implements CloudProviderInterface {
 
       // 200 = created, 409 = already exists (which is fine)
       if (response.statusCode != 200 && response.statusCode != 409) {
-        print('Create folder response: ${response.body}');
+        AppLogger.debug('Create folder response: ${response.body}');
       }
     } catch (e) {
-      print('Ensure folder error: $e');
+      AppLogger.error('Ensure folder error', e);
       // Don't throw - folder might already exist
     }
   }
@@ -215,7 +217,7 @@ class DropboxProvider implements CloudProviderInterface {
         final data = json.decode(response.body);
         return UploadResult.success(data['path_display']);
       } else {
-        print('Dropbox upload error: ${response.body}');
+        AppLogger.error('Dropbox upload error: ${response.body}');
         
         // Try to refresh token and retry once
         if (response.statusCode == 401) {
@@ -232,7 +234,7 @@ class DropboxProvider implements CloudProviderInterface {
         return UploadResult.failure('Upload failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('Dropbox upload error: $e');
+      AppLogger.error('Dropbox upload error', e);
       return UploadResult.failure('Upload failed: $e');
     }
   }
@@ -255,7 +257,7 @@ class DropboxProvider implements CloudProviderInterface {
       if (response.statusCode == 200) {
         return DownloadResult.success(response.bodyBytes);
       } else {
-        print('Dropbox download error: ${response.body}');
+        AppLogger.error('Dropbox download error: ${response.body}');
         
         // Try to refresh token and retry once
         if (response.statusCode == 401) {
@@ -268,7 +270,7 @@ class DropboxProvider implements CloudProviderInterface {
         return DownloadResult.failure('Download failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('Dropbox download error: $e');
+      AppLogger.error('Dropbox download error', e);
       return DownloadResult.failure('Download failed: $e');
     }
   }
@@ -286,7 +288,7 @@ class DropboxProvider implements CloudProviderInterface {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Dropbox delete error: $e');
+      AppLogger.error('Dropbox delete error', e);
       return false;
     }
   }
@@ -318,11 +320,11 @@ class DropboxProvider implements CloudProviderInterface {
           );
         }).toList();
       } else {
-        print('Dropbox list error: ${response.body}');
+        AppLogger.error('Dropbox list error: ${response.body}');
         return [];
       }
     } catch (e) {
-      print('Dropbox list error: $e');
+      AppLogger.error('Dropbox list error', e);
       return [];
     }
   }
@@ -360,7 +362,7 @@ class DropboxProvider implements CloudProviderInterface {
       }
       return null;
     } catch (e) {
-      print('Dropbox storage check error: $e');
+      AppLogger.error('Dropbox storage check error', e);
       return null;
     }
   }

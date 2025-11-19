@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import '../core/logger_service.dart';
 
 /// Service for managing audio-only recordings (vocal memos)
 class AudioRecordingService {
@@ -42,7 +43,7 @@ class AudioRecordingService {
 
     // If permission is permanently denied, return false
     if (microphoneStatus.isPermanentlyDenied) {
-      print('Microphone permission permanently denied. Please enable in settings.');
+      AppLogger.warning('Microphone permission permanently denied. Please enable in settings.');
       return false;
     }
 
@@ -80,7 +81,7 @@ class AudioRecordingService {
   /// Start audio recording
   Future<bool> startRecording() async {
     if (_isRecording) {
-      print('Already recording');
+      AppLogger.warning('Already recording');
       return false;
     }
 
@@ -88,7 +89,7 @@ class AudioRecordingService {
       // Request permissions
       final hasPermissions = await _requestPermissions();
       if (!hasPermissions) {
-        print('Microphone permission denied');
+        AppLogger.warning('Microphone permission denied');
         return false;
       }
 
@@ -97,7 +98,7 @@ class AudioRecordingService {
 
       // Check if the recorder has permission
       if (!await _audioRecorder!.hasPermission()) {
-        print('Audio recorder does not have permission');
+        AppLogger.warning('Audio recorder does not have permission');
         return false;
       }
 
@@ -129,10 +130,10 @@ class AudioRecordingService {
         }
       });
 
-      print('Audio recording started: $_currentRecordingPath');
+      AppLogger.info('Audio recording started: $_currentRecordingPath');
       return true;
     } catch (e) {
-      print('Error starting audio recording: $e');
+      AppLogger.error('Error starting audio recording', e);
       
       // Reset state on failure
       _audioRecorder?.dispose();
@@ -152,7 +153,7 @@ class AudioRecordingService {
   /// Stop recording and return the file path
   Future<String?> stopRecording() async {
     if (!_isRecording || _audioRecorder == null) {
-      print('Not currently recording');
+      AppLogger.warning('Not currently recording');
       return null;
     }
 
@@ -174,7 +175,7 @@ class AudioRecordingService {
       _audioRecorder = null;
 
       if (path != null) {
-        print('Audio recording stopped: $path');
+        AppLogger.info('Audio recording stopped: $path');
 
         // Verify file exists
         final file = File(path);
@@ -183,17 +184,17 @@ class AudioRecordingService {
           _currentRecordingPath = null;
           return filePath;
         } else {
-          print('Recording file not found at: $path');
+          AppLogger.warning('Recording file not found at: $path');
           _currentRecordingPath = null;
           return null;
         }
       } else {
-        print('Recording path is null');
+        AppLogger.warning('Recording path is null');
         _currentRecordingPath = null;
         return null;
       }
     } catch (e) {
-      print('Error stopping audio recording: $e');
+      AppLogger.error('Error stopping audio recording', e);
       
       // Reset state on failure
       _audioRecorder?.dispose();
@@ -234,7 +235,7 @@ class AudioRecordingService {
         }
       }
     } catch (e) {
-      print('Error canceling recording: $e');
+      AppLogger.error('Error canceling recording', e);
     } finally {
       // Dispose the recorder
       _audioRecorder?.dispose();

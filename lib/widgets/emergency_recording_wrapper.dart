@@ -1,3 +1,5 @@
+import '../core/logger_service.dart';
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -118,7 +120,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
       try {
         await recordingFile.delete();
       } catch (e) {
-        print('Error deleting temp file: $e');
+        AppLogger.error('Error deleting temp file', e);
       }
 
       // Show success message
@@ -158,7 +160,7 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
         _refreshDocumentList();
       }
     } catch (e) {
-      print('Error processing recording: $e');
+      AppLogger.error('Error processing recording', e);
       _showError('Failed to save recording: $e');
     } finally {
       if (mounted) {
@@ -260,12 +262,12 @@ class _EmergencyRecordingWrapperState extends State<EmergencyRecordingWrapper> {
             context.read<DocumentListViewModel>().loadDocuments();
           } catch (e) {
             // Silently fail if DocumentListViewModel is not available
-            print('Could not refresh document list: $e');
+            AppLogger.warning('Could not refresh document list', e);
           }
         }
       });
     } catch (e) {
-      print('Could not schedule document list refresh: $e');
+      AppLogger.warning('Could not schedule document list refresh', e);
     }
   }
 

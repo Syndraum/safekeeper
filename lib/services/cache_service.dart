@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../core/logger_service.dart';
 
 /// Service for managing temporary cache files for security purposes
 /// Ensures decrypted files are properly cleaned up
@@ -22,16 +23,16 @@ class CacheService {
       // Clear any leftover cache from previous sessions
       await clearAllCache();
       _isInitialized = true;
-      print('CacheService initialized and cleaned');
+      AppLogger.info('CacheService initialized and cleaned');
     } catch (e) {
-      print('Error initializing CacheService: $e');
+      AppLogger.error('Error initializing CacheService', e);
     }
   }
 
   /// Register a temporary file for tracking
   void trackFile(String filePath) {
     _trackedFiles.add(filePath);
-    print('Tracking temp file: $filePath');
+    AppLogger.debug('Tracking temp file: $filePath');
   }
 
   /// Unregister a temporary file
@@ -45,12 +46,12 @@ class CacheService {
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();
-        print('Deleted tracked file: $filePath');
+        AppLogger.debug('Deleted tracked file: $filePath');
       }
       _trackedFiles.remove(filePath);
       return true;
     } catch (e) {
-      print('Error deleting tracked file $filePath: $e');
+      AppLogger.error('Error deleting tracked file $filePath', e);
       return false;
     }
   }
@@ -66,11 +67,11 @@ class CacheService {
         if (await file.exists()) {
           await file.delete();
           deletedCount++;
-          print('Deleted tracked file: $filePath');
+          AppLogger.debug('Deleted tracked file: $filePath');
         }
         _trackedFiles.remove(filePath);
       } catch (e) {
-        print('Error deleting tracked file $filePath: $e');
+        AppLogger.error('Error deleting tracked file $filePath', e);
       }
     }
     
@@ -93,15 +94,15 @@ class CacheService {
             if (file is File) {
               await file.delete();
               deletedCount++;
-              print('Deleted cache file: ${file.path}');
+              AppLogger.debug('Deleted cache file: ${file.path}');
             } else if (file is Directory) {
               // Recursively delete subdirectories
               await file.delete(recursive: true);
               deletedCount++;
-              print('Deleted cache directory: ${file.path}');
+              AppLogger.debug('Deleted cache directory: ${file.path}');
             }
           } catch (e) {
-            print('Error deleting ${file.path}: $e');
+            AppLogger.error('Error deleting ${file.path}', e);
           }
         }
       }
@@ -109,9 +110,9 @@ class CacheService {
       // Clear tracked files set
       _trackedFiles.clear();
       
-      print('Cache cleared: $deletedCount items deleted');
+      AppLogger.info('Cache cleared: $deletedCount items deleted');
     } catch (e) {
-      print('Error clearing cache: $e');
+      AppLogger.error('Error clearing cache', e);
     }
     
     return deletedCount;
@@ -154,18 +155,18 @@ class CacheService {
                 await file.delete();
                 deletedCount++;
                 _trackedFiles.remove(file.path);
-                print('Deleted cache file: ${file.path}');
+                AppLogger.debug('Deleted cache file: ${file.path}');
               } catch (e) {
-                print('Error deleting ${file.path}: $e');
+                AppLogger.error('Error deleting ${file.path}', e);
               }
             }
           }
         }
       }
       
-      print('Cleared $deletedCount files with extensions: $extensions');
+      AppLogger.info('Cleared $deletedCount files with extensions: $extensions');
     } catch (e) {
-      print('Error clearing cache by extensions: $e');
+      AppLogger.error('Error clearing cache by extensions', e);
     }
     
     return deletedCount;
@@ -187,13 +188,13 @@ class CacheService {
               final stat = await file.stat();
               totalSize += stat.size;
             } catch (e) {
-              print('Error getting size of ${file.path}: $e');
+              AppLogger.error('Error getting size of ${file.path}', e);
             }
           }
         }
       }
     } catch (e) {
-      print('Error calculating cache size: $e');
+      AppLogger.error('Error calculating cache size', e);
     }
     
     return totalSize;
@@ -217,7 +218,7 @@ class CacheService {
 
   /// Clear cache on app termination or lock
   Future<void> clearOnExit() async {
-    print('Clearing cache on exit...');
+    AppLogger.info('Clearing cache on exit...');
     await clearAllCache();
   }
 }

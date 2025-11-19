@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import '../core/logger_service.dart';
 import '../models/backup_status.dart';
 import 'cloud_providers/cloud_provider_interface.dart';
 import 'cloud_providers/google_drive_provider.dart';
@@ -55,7 +56,7 @@ class CloudBackupService {
         _backupStatuses[doc['id']] = status;
       }
     } catch (e) {
-      print('Error loading backup statuses: $e');
+      AppLogger.error('Error loading backup statuses', e);
     }
   }
 
@@ -105,27 +106,27 @@ class CloudBackupService {
   /// Backup a document to all enabled providers
   Future<void> backupDocument(int documentId, String encryptedFilePath) async {
     if (!_settingsService.isBackupEnabled()) {
-      print('Backup is disabled');
+      AppLogger.info('Backup is disabled');
       return;
     }
 
     final enabledProviders = _settingsService.getEnabledProviders();
     if (enabledProviders.isEmpty) {
-      print('No providers enabled');
+      AppLogger.info('No providers enabled');
       return;
     }
 
     // Get document info
     final doc = await _documentService.getDocument(documentId);
     if (doc == null) {
-      print('Document not found: $documentId');
+      AppLogger.warning('Document not found: $documentId');
       return;
     }
 
     // Read encrypted file
     final file = File(encryptedFilePath);
     if (!await file.exists()) {
-      print('File not found: $encryptedFilePath');
+      AppLogger.warning('File not found: $encryptedFilePath');
       return;
     }
 
@@ -166,7 +167,7 @@ class CloudBackupService {
   ) async {
     final provider = _getProvider(providerName);
     if (provider == null) {
-      print('Unknown provider: $providerName');
+      AppLogger.warning('Unknown provider: $providerName');
       return;
     }
 
@@ -216,12 +217,12 @@ class CloudBackupService {
           result.fileId,
         );
 
-        print('Successfully backed up to $providerName: ${result.fileId}');
+        AppLogger.success('Successfully backed up to $providerName: ${result.fileId}');
       } else {
         throw Exception(result.errorMessage ?? 'Upload failed');
       }
     } catch (e) {
-      print('Backup to $providerName failed: $e');
+      AppLogger.error('Backup to $providerName failed', e);
       
       // Update status to failed
       status.providers[providerName] = ProviderBackupStatus(
@@ -278,7 +279,7 @@ class CloudBackupService {
   /// Sync all documents that need backup
   Future<void> syncAllDocuments() async {
     if (!_settingsService.isBackupEnabled()) {
-      print('Backup is disabled');
+      AppLogger.info('Backup is disabled');
       return;
     }
 
@@ -318,19 +319,19 @@ class CloudBackupService {
   Future<Uint8List?> restoreDocument(int documentId, String providerName) async {
     final provider = _getProvider(providerName);
     if (provider == null) {
-      print('Unknown provider: $providerName');
+      AppLogger.warning('Unknown provider: $providerName');
       return null;
     }
 
     final status = _backupStatuses[documentId];
     if (status == null) {
-      print('No backup status for document: $documentId');
+      AppLogger.warning('No backup status for document: $documentId');
       return null;
     }
 
     final providerStatus = status.getProviderStatus(providerName);
     if (providerStatus == null || providerStatus.fileId == null) {
-      print('No backup found for provider: $providerName');
+      AppLogger.warning('No backup found for provider: $providerName');
       return null;
     }
 
@@ -339,11 +340,11 @@ class CloudBackupService {
       if (result.success) {
         return result.data;
       } else {
-        print('Download failed: ${result.errorMessage}');
+        AppLogger.error('Download failed: ${result.errorMessage}');
         return null;
       }
     } catch (e) {
-      print('Restore error: $e');
+      AppLogger.error('Restore error', e);
       return null;
     }
   }
@@ -384,7 +385,7 @@ class CloudBackupService {
       }
       return success;
     } catch (e) {
-      print('Delete backup error: $e');
+      AppLogger.error('Delete backup error', e);
       return false;
     }
   }

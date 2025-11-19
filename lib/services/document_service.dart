@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'dart:io';
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import '../core/logger_service.dart';
 
 class DocumentService {
   static Database? _database;
@@ -22,7 +23,7 @@ class DocumentService {
       final result = await db.rawQuery('PRAGMA table_info($tableName)');
       return result.any((column) => column['name'] == columnName);
     } catch (e) {
-      print('Error checking column existence: $e');
+      AppLogger.error('Error checking column existence', e);
       return false;
     }
   }
@@ -37,9 +38,9 @@ class DocumentService {
     final exists = await _columnExists(db, tableName, columnName);
     if (!exists) {
       await db.execute('ALTER TABLE $tableName ADD COLUMN $columnName $columnType');
-      print('Added column $columnName to $tableName');
+      AppLogger.info('Added column $columnName to $tableName');
     } else {
-      print('Column $columnName already exists in $tableName, skipping');
+      AppLogger.debug('Column $columnName already exists in $tableName, skipping');
     }
   }
 
@@ -155,13 +156,13 @@ class DocumentService {
     if (await oldFile.exists()) {
       try {
         await oldFile.rename(newPath);
-        print('Renamed file from $oldPath to $newPath');
+        AppLogger.info('Renamed file from $oldPath to $newPath');
       } catch (e) {
-        print('Error renaming file: $e');
+        AppLogger.error('Error renaming file', e);
         throw Exception('Failed to rename physical file: $e');
       }
     } else {
-      print('Warning: Old file not found at $oldPath');
+      AppLogger.warning('Old file not found at $oldPath');
     }
     
     // Update the database with new name and path
@@ -190,12 +191,12 @@ class DocumentService {
           final file = File(filePath);
           if (await file.exists()) {
             await file.delete();
-            print('Deleted encrypted file: $filePath');
+            AppLogger.info('Deleted encrypted file: $filePath');
           } else {
-            print('File not found (already deleted?): $filePath');
+            AppLogger.warning('File not found (already deleted?): $filePath');
           }
         } catch (e) {
-          print('Error deleting file $filePath: $e');
+          AppLogger.error('Error deleting file $filePath', e);
           // Continue with database deletion even if file deletion fails
         }
       }

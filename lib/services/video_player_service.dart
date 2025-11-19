@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/logger_service.dart';
 import 'encryption_service.dart';
 import 'cache_service.dart';
 
@@ -72,7 +73,7 @@ class VideoPlayerService {
       // Read encrypted file
       final encryptedFile = File(encryptedPath);
       if (!await encryptedFile.exists()) {
-        print('Encrypted file not found: $encryptedPath');
+        AppLogger.error('Encrypted file not found: $encryptedPath');
         _errorController.add('Video file not found');
         return null;
       }
@@ -105,7 +106,7 @@ class VideoPlayerService {
 
       return tempPath;
     } catch (e) {
-      print('Error preparing encrypted file: $e');
+      AppLogger.error('Error preparing encrypted file', e);
       _errorController.add('Failed to decrypt video: $e');
       return null;
     }
@@ -131,7 +132,7 @@ class VideoPlayerService {
       );
 
       if (_decryptedTempPath == null) {
-        print('Failed to prepare video file');
+        AppLogger.error('Failed to prepare video file');
         _initializationController.add(false);
         return false;
       }
@@ -152,7 +153,7 @@ class VideoPlayerService {
       _initializationController.add(true);
       return true;
     } catch (e) {
-      print('Error initializing video: $e');
+      AppLogger.error('Error initializing video', e);
       _errorController.add('Failed to initialize video: $e');
       _initializationController.add(false);
       return false;
@@ -178,7 +179,7 @@ class VideoPlayerService {
       _initializationController.add(true);
       return true;
     } catch (e) {
-      print('Error initializing video: $e');
+      AppLogger.error('Error initializing video', e);
       _errorController.add('Failed to initialize video: $e');
       _initializationController.add(false);
       return false;
@@ -192,7 +193,7 @@ class VideoPlayerService {
         await _videoPlayerController!.play();
       }
     } catch (e) {
-      print('Error playing video: $e');
+      AppLogger.error('Error playing video', e);
       _errorController.add('Failed to play video: $e');
     }
   }
@@ -204,7 +205,7 @@ class VideoPlayerService {
         await _videoPlayerController!.pause();
       }
     } catch (e) {
-      print('Error pausing video: $e');
+      AppLogger.error('Error pausing video', e);
       _errorController.add('Failed to pause video: $e');
     }
   }
@@ -216,7 +217,7 @@ class VideoPlayerService {
         await _videoPlayerController!.seekTo(position);
       }
     } catch (e) {
-      print('Error seeking: $e');
+      AppLogger.error('Error seeking', e);
       _errorController.add('Failed to seek: $e');
     }
   }
@@ -228,7 +229,7 @@ class VideoPlayerService {
         await _videoPlayerController!.setVolume(volume.clamp(0.0, 1.0));
       }
     } catch (e) {
-      print('Error setting volume: $e');
+      AppLogger.error('Error setting volume', e);
       _errorController.add('Failed to set volume: $e');
     }
   }
@@ -240,7 +241,7 @@ class VideoPlayerService {
         await _videoPlayerController!.setLooping(looping);
       }
     } catch (e) {
-      print('Error setting looping: $e');
+      AppLogger.error('Error setting looping', e);
     }
   }
 
@@ -259,7 +260,7 @@ class VideoPlayerService {
         _decryptedTempPath = null;
       }
     } catch (e) {
-      print('Error disposing video player: $e');
+      AppLogger.error('Error disposing video player', e);
     }
   }
 

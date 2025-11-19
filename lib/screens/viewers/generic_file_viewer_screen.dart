@@ -1,3 +1,5 @@
+import '../../core/logger_service.dart';
+
 import 'package:flutter/material.dart';
 import '../../services/file_type_detector.dart';
 import '../../services/cache_service.dart';
@@ -33,10 +35,10 @@ class _GenericFileViewerScreenState extends State<GenericFileViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('file path: ${widget.filePath}');
-    print('File name: ${widget.fileName}');
-    print('File type: ${widget.fileType.name}');
-    print('MIME type: ${widget.mimeType}');
+    AppLogger.debug('file path: ${widget.filePath}');
+    AppLogger.debug('File name: ${widget.fileName}');
+    AppLogger.debug('File type: ${widget.fileType.name}');
+    AppLogger.debug('MIME type: ${widget.mimeType}');
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.fileName)),

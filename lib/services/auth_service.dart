@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
+import '../core/logger_service.dart';
 
 /// Authentication service to manage the global password
 class AuthService {
@@ -68,7 +69,7 @@ class AuthService {
       _isAuthenticated = true;
       return true;
     } catch (e) {
-      print('Error setting up password: $e');
+      AppLogger.error('Error setting up password', e);
       return false;
     }
   }
@@ -98,7 +99,7 @@ class AuthService {
 
       return false;
     } catch (e) {
-      print('Error verifying password: $e');
+      AppLogger.error('Error verifying password', e);
       return false;
     }
   }
@@ -173,7 +174,7 @@ class AuthService {
       final salt = base64.decode(storedSaltStr);
       return _deriveKey(password, salt);
     } catch (e) {
-      print('Error deriving key: $e');
+      AppLogger.error('Error deriving key', e);
       return null;
     }
   }

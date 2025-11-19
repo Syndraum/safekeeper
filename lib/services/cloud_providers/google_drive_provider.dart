@@ -1,3 +1,5 @@
+import '../../core/logger_service.dart';
+
 import 'dart:typed_data';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/auth_io.dart';
@@ -71,7 +73,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
 
       return true;
     } catch (e) {
-      print('Google Drive authentication error: $e');
+      AppLogger.error('Google Drive authentication error', e);
       return false;
     }
   }
@@ -123,7 +125,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
 
       return true;
     } catch (e) {
-      print('Token refresh error: $e');
+      AppLogger.error('Token refresh error', e);
       return false;
     }
   }
@@ -217,7 +219,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
 
       return UploadResult.success(uploadedFile.id!);
     } catch (e) {
-      print('Google Drive upload error: $e');
+      AppLogger.error('Google Drive upload error', e);
       return UploadResult.failure('Upload failed: $e');
     }
   }
@@ -239,7 +241,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
 
       return DownloadResult.success(Uint8List.fromList(dataBytes));
     } catch (e) {
-      print('Google Drive download error: $e');
+      AppLogger.error('Google Drive download error', e);
       return DownloadResult.failure('Download failed: $e');
     }
   }
@@ -251,7 +253,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
       await _driveApi!.files.delete(fileId);
       return true;
     } catch (e) {
-      print('Google Drive delete error: $e');
+      AppLogger.error('Google Drive delete error', e);
       return false;
     }
   }
@@ -282,7 +284,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
         );
       }).toList();
     } catch (e) {
-      print('Google Drive list error: $e');
+      AppLogger.error('Google Drive list error', e);
       return [];
     }
   }
@@ -311,7 +313,7 @@ class GoogleDriveProvider implements CloudProviderInterface {
       }
       return null;
     } catch (e) {
-      print('Google Drive storage check error: $e');
+      AppLogger.error('Google Drive storage check error', e);
       return null;
     }
   }

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/logger_service.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 
 /// Service for managing emergency video recordings
@@ -48,7 +50,7 @@ class RecordingService {
     // If permissions are permanently denied, return false
     if (cameraStatus.isPermanentlyDenied ||
         microphoneStatus.isPermanentlyDenied) {
-      print('Permissions permanently denied. Please enable in settings.');
+      AppLogger.warning('Permissions permanently denied. Please enable in settings.');
       return false;
     }
 
@@ -80,7 +82,7 @@ class RecordingService {
       _cameras = await availableCameras();
 
       if (_cameras == null || _cameras!.isEmpty) {
-        print('No cameras available');
+        AppLogger.warning('No cameras available');
         return false;
       }
 
@@ -100,7 +102,7 @@ class RecordingService {
 
       return true;
     } catch (e) {
-      print('Error initializing camera: $e');
+      AppLogger.error('Error initializing camera', e);
       return false;
     }
   }
@@ -127,14 +129,14 @@ class RecordingService {
       await _cameraController?.dispose();
       _cameraController = null;
     } catch (e) {
-      print('Error disposing camera: $e');
+      AppLogger.error('Error disposing camera', e);
     }
   }
 
   /// Start recording
   Future<bool> startRecording() async {
     if (_isRecording) {
-      print('Already recording');
+      AppLogger.warning('Already recording');
       return false;
     }
 
@@ -142,7 +144,7 @@ class RecordingService {
       // Request permissions
       final hasPermissions = await _requestPermissions();
       if (!hasPermissions) {
-        print('Camera or microphone permission denied');
+        AppLogger.warning('Camera or microphone permission denied');
         return false;
       }
 
@@ -151,7 +153,7 @@ class RecordingService {
           !_cameraController!.value.isInitialized) {
         final initialized = await _initializeCamera();
         if (!initialized) {
-          print('Failed to initialize camera');
+          AppLogger.error('Failed to initialize camera');
           return false;
         }
       }
@@ -174,10 +176,10 @@ class RecordingService {
         }
       });
 
-      print('Video recording started: $_currentRecordingPath');
+      AppLogger.info('Video recording started: $_currentRecordingPath');
       return true;
     } catch (e) {
-      print('Error starting video recording: $e');
+      AppLogger.error('Error starting video recording', e);
       
       // Clean up camera resources on failure
       await _cleanupCamera();
@@ -198,7 +200,7 @@ class RecordingService {
   /// Stop recording and return the file path
   Future<String?> stopRecording() async {
     if (!_isRecording) {
-      print('Not currently recording');
+      AppLogger.warning('Not currently recording');
       return null;
     }
 
@@ -215,7 +217,7 @@ class RecordingService {
       _durationTimer = null;
       _durationController.add(Duration.zero);
 
-      print('Video recording stopped: ${videoFile.path}');
+      AppLogger.info('Video recording stopped: ${videoFile.path}');
 
       // On iOS, the video file is already in the correct location
       // On Android, we may need to move it
@@ -239,11 +241,11 @@ class RecordingService {
             try {
               await sourceFile.delete();
             } catch (e) {
-              print('Could not delete source file: $e');
+              AppLogger.warning('Could not delete source file', e);
             }
           }
         } catch (e) {
-          print('Could not move file, using original path: $e');
+          AppLogger.warning('Could not move file, using original path', e);
           // If move fails, use the original path
           finalPath = videoFile.path;
         }
@@ -257,14 +259,14 @@ class RecordingService {
       // Verify final file exists
       final finalFile = File(finalPath);
       if (await finalFile.exists()) {
-        print('Recording saved successfully: $finalPath');
+        AppLogger.success('Recording saved successfully: $finalPath');
         return finalPath;
       } else {
-        print('Recording file not found at: $finalPath');
+        AppLogger.warning('Recording file not found at: $finalPath');
         return null;
       }
     } catch (e) {
-      print('Error stopping video recording: $e');
+      AppLogger.error('Error stopping video recording', e);
       
       // Clean up camera resources on failure
       await _cleanupCamera();
@@ -305,7 +307,7 @@ class RecordingService {
         }
       }
     } catch (e) {
-      print('Error canceling recording: $e');
+      AppLogger.error('Error canceling recording', e);
     } finally {
       // Clean up camera resources
       await _cleanupCamera();

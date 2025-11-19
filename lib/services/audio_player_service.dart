@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/logger_service.dart';
 import 'encryption_service.dart';
 import 'cache_service.dart';
 
@@ -80,7 +81,7 @@ class AudioPlayerService {
       // Read encrypted file
       final encryptedFile = File(encryptedPath);
       if (!await encryptedFile.exists()) {
-        print('Encrypted file not found: $encryptedPath');
+        AppLogger.error('Encrypted file not found: $encryptedPath');
         return null;
       }
 
@@ -112,7 +113,7 @@ class AudioPlayerService {
 
       return tempPath;
     } catch (e) {
-      print('Error preparing encrypted file: $e');
+      AppLogger.error('Error preparing encrypted file', e);
       return null;
     }
   }
@@ -137,7 +138,7 @@ class AudioPlayerService {
       );
 
       if (_decryptedTempPath == null) {
-        print('Failed to prepare audio file');
+        AppLogger.error('Failed to prepare audio file');
         return false;
       }
 
@@ -145,7 +146,7 @@ class AudioPlayerService {
       await _audioPlayer.play(DeviceFileSource(_decryptedTempPath!));
       return true;
     } catch (e) {
-      print('Error playing audio: $e');
+      AppLogger.error('Error playing audio', e);
       return false;
     }
   }
@@ -157,7 +158,7 @@ class AudioPlayerService {
       await _audioPlayer.play(DeviceFileSource(filePath));
       return true;
     } catch (e) {
-      print('Error playing audio: $e');
+      AppLogger.error('Error playing audio', e);
       return false;
     }
   }
@@ -167,7 +168,7 @@ class AudioPlayerService {
     try {
       await _audioPlayer.pause();
     } catch (e) {
-      print('Error pausing audio: $e');
+      AppLogger.error('Error pausing audio', e);
     }
   }
 
@@ -176,7 +177,7 @@ class AudioPlayerService {
     try {
       await _audioPlayer.resume();
     } catch (e) {
-      print('Error resuming audio: $e');
+      AppLogger.error('Error resuming audio', e);
     }
   }
 
@@ -191,7 +192,7 @@ class AudioPlayerService {
         _decryptedTempPath = null;
       }
     } catch (e) {
-      print('Error stopping audio: $e');
+      AppLogger.error('Error stopping audio', e);
     }
   }
 
@@ -200,7 +201,7 @@ class AudioPlayerService {
     try {
       await _audioPlayer.seek(position);
     } catch (e) {
-      print('Error seeking: $e');
+      AppLogger.error('Error seeking', e);
     }
   }
 
@@ -209,7 +210,7 @@ class AudioPlayerService {
     try {
       await _audioPlayer.setVolume(volume.clamp(0.0, 1.0));
     } catch (e) {
-      print('Error setting volume: $e');
+      AppLogger.error('Error setting volume', e);
     }
   }
 

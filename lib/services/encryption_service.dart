@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:crypto/crypto.dart';
+import '../core/logger_service.dart';
 
 class EncryptionService {
   static final EncryptionService _instance = EncryptionService._internal();
@@ -41,14 +42,14 @@ class EncryptionService {
       if (privateKeyStr != null && publicKeyStr != null) {
         _privateKey = _deserializePrivateKey(privateKeyStr);
         _publicKey = _deserializePublicKey(publicKeyStr);
-        print('RSA keys loaded from storage');
+        AppLogger.info('RSA keys loaded from storage');
       } else {
         // Generate new keys
         await _generateAndStoreRSAKeys();
-        print('New RSA keys generated and stored');
+        AppLogger.info('New RSA keys generated and stored');
       }
     } catch (e) {
-      print('Error loading RSA keys: $e');
+      AppLogger.error('Error loading RSA keys', e);
       // If there's an error, generate new keys
       await _generateAndStoreRSAKeys();
     }

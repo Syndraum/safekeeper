@@ -1,3 +1,5 @@
+import '../core/logger_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
@@ -280,12 +282,12 @@ class _UploadScreenState extends State<UploadScreen> {
             context.read<DocumentListViewModel>().loadDocuments();
           } catch (e) {
             // Silently fail if DocumentListViewModel is not available
-            print('Could not refresh document list: $e');
+            AppLogger.warning('Could not refresh document list', e);
           }
         }
       });
     } catch (e) {
-      print('Could not schedule document list refresh: $e');
+      AppLogger.warning('Could not schedule document list refresh', e);
     }
   }
 

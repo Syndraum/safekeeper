@@ -1,3 +1,5 @@
+import 'logger_service.dart';
+
 import 'package:flutter/foundation.dart';
 import 'view_state.dart';
 
@@ -53,9 +55,9 @@ abstract class BaseViewModel extends ChangeNotifier {
     
     // Log error in debug mode
     if (kDebugMode) {
-      print('ViewModel Error: $message');
-      if (error != null) print('Error details: $error');
-      if (stackTrace != null) print('Stack trace: $stackTrace');
+      AppLogger.error('ViewModel Error: $message');
+      if (error != null) AppLogger.error('Error details', error);
+      if (stackTrace != null) AppLogger.debug('Stack trace: $stackTrace');
     }
   }
 

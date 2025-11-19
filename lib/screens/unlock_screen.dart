@@ -139,8 +139,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
     if (mounted) {
       if (success) {
-        // Correct password - navigate to main screen
-        Navigator.of(context).pushReplacementNamed('/');
+        // Correct password - navigate to main screen and clear navigation stack
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       } else {
         // Incorrect password
         setState(() {

@@ -175,11 +175,19 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
   final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   void _setPanicCallback(VoidCallback callback) {
-    _panicCallback = callback;
+    if (mounted) {
+      setState(() {
+        _panicCallback = callback;
+      });
+    }
   }
 
   void _setRecordingCallback(VoidCallback callback) {
-    _recordingCallback = callback;
+    if (mounted) {
+      setState(() {
+        _recordingCallback = callback;
+      });
+    }
   }
 
   String _getInitialRoute() {
@@ -208,8 +216,8 @@ class _AppWithEmergencyWrapperState extends State<_AppWithEmergencyWrapper> {
         // Define routes for navigating between screens
         routes: {
           '/': (context) => MainNavigationScreen(
-                onPanicPressed: _panicCallback,
-                onEmergencyRecordingPressed: _recordingCallback,
+                onPanicPressed: _panicCallback ?? () {},
+                onEmergencyRecordingPressed: _recordingCallback ?? () {},
               ),
           '/password-setup': (context) => const PasswordSetupScreen(),
           '/permissions-onboarding': (context) => const PermissionsOnboardingScreen(),

@@ -78,17 +78,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: DualBottomNavigationBars(
-        currentIndex: _currentIndex,
-        onTabChanged: _onTabChanged,
-        onPanicPressed: widget.onPanicPressed ?? () {},
-        onEmergencyRecordingPressed: widget.onEmergencyRecordingPressed ?? () {},
-        isRecording: _isRecording,
+    return WillPopScope(
+      // Prevent back button from exiting the app when on main navigation
+      onWillPop: () async => false,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: DualBottomNavigationBars(
+          currentIndex: _currentIndex,
+          onTabChanged: _onTabChanged,
+          onPanicPressed: widget.onPanicPressed ?? () {},
+          onEmergencyRecordingPressed: widget.onEmergencyRecordingPressed ?? () {},
+          isRecording: _isRecording,
+        ),
       ),
     );
   }
